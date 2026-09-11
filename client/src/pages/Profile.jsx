@@ -1,16 +1,91 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
+import toast from "react-hot-toast";
 
 const Profile = () => {
 
     const {
         user,
         userToken,
-        logoutUser
+        logoutUser,
+        axios
     } = useAppContext();
 
     const navigate = useNavigate();
+
+    const [myBlogs, setMyBlogs] = useState([]);
+    const [loadingBlogs, setLoadingBlogs] = useState(false);
+
+
+    // ============================================
+    // FETCH MY BLOGS
+    // ============================================
+
+    const fetchMyBlogs = async () => {
+
+        if (!userToken) {
+            return;
+        }
+
+        try {
+
+            setLoadingBlogs(true);
+
+            const { data } = await axios.get(
+                "/api/user/blog/my",
+                {
+                    headers: {
+                        Authorization: userToken
+                    }
+                }
+            );
+
+            if (data.success) {
+
+                setMyBlogs(data.blogs || []);
+
+            } else {
+
+                toast.error(
+                    data.message ||
+                    "Unable to load your blogs"
+                );
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Fetch My Blogs Error:",
+                error
+            );
+
+            toast.error(
+                error.response?.data?.message ||
+                "Unable to load your blogs"
+            );
+
+        } finally {
+
+            setLoadingBlogs(false);
+
+        }
+
+    };
+
+
+    // ============================================
+    // LOAD BLOGS
+    // ============================================
+
+    useEffect(() => {
+
+        if (userToken) {
+            fetchMyBlogs();
+        }
+
+    }, [userToken]);
 
 
     // ============================================
@@ -49,14 +124,14 @@ const Profile = () => {
 
         <div className="min-h-screen bg-gray-50 px-4 py-10">
 
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-5xl mx-auto">
+
 
                 {/* ============================================
                     PROFILE CARD
                 ============================================ */}
 
                 <div className="bg-white rounded-2xl shadow-md p-8">
-
 
                     {/* PROFILE HEADER */}
 
@@ -93,7 +168,7 @@ const Profile = () => {
                         USER INFORMATION
                     ============================================ */}
 
-                    <div className="mt-8 space-y-4">
+                    <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
 
 
                         {/* USERNAME */}
@@ -119,7 +194,7 @@ const Profile = () => {
                                 Email
                             </p>
 
-                            <p className="font-medium text-gray-800 mt-1">
+                            <p className="font-medium text-gray-800 mt-1 break-all">
                                 {user.email}
                             </p>
 
@@ -150,6 +225,16 @@ const Profile = () => {
                     <div className="flex flex-col sm:flex-row gap-3 mt-8">
 
 
+                        {/* MY BLOGS */}
+
+                        <button
+                            onClick={() => navigate("/my-blogs")}
+                            className="flex-1 bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700"
+                        >
+                            📝 My Blogs
+                        </button>
+
+
                         {/* HOME */}
 
                         <button
@@ -170,6 +255,196 @@ const Profile = () => {
                         </button>
 
                     </div>
+
+                </div>
+
+
+                {/* ============================================
+                    MY BLOGS PREVIEW
+                ============================================ */}
+
+                <div className="mt-8">
+
+                    <div className="flex items-center justify-between mb-5">
+
+                        <div>
+
+                            <h2 className="text-2xl font-bold text-gray-800">
+                                My Blogs
+                            </h2>
+
+                            <p className="text-sm text-gray-500 mt-1">
+                                Blogs created from your account
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            onClick={() => navigate("/my-blogs")}
+                            className="text-indigo-600 text-sm font-medium hover:underline"
+                        >
+                            View All →
+                        </button>
+
+                    </div>
+
+
+                    {/* LOADING */}
+
+                    {loadingBlogs && (
+
+                        <div className="bg-white rounded-xl p-8 text-center shadow-sm">
+
+                            <p className="text-gray-500">
+                                Loading your blogs...
+                            </p>
+
+                        </div>
+
+                    )}
+
+
+                    {/* NO BLOGS */}
+
+                    {!loadingBlogs &&
+                        myBlogs.length === 0 && (
+
+                            <div className="bg-white rounded-xl p-8 text-center shadow-sm">
+
+                                <div className="text-4xl">
+                                    📝
+                                </div>
+
+                                <h3 className="text-lg font-semibold text-gray-800 mt-3">
+                                    No Blogs Yet
+                                </h3>
+
+                                <p className="text-sm text-gray-500 mt-1">
+                                    You haven't created any blogs yet.
+                                </p>
+
+                                <button
+                                    onClick={() =>
+                                        navigate("/add-blog")
+                                    }
+                                    className="mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700"
+                                >
+                                    Create Your First Blog
+                                </button>
+
+                            </div>
+
+                        )}
+
+
+                    {/* BLOG PREVIEW */}
+
+                    {!loadingBlogs &&
+                        myBlogs.length > 0 && (
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+                                {myBlogs.slice(0, 3).map(
+                                    (blog) => (
+
+                                        <div
+                                            key={blog._id}
+                                            className="bg-white rounded-xl overflow-hidden shadow-sm border hover:shadow-md transition"
+                                        >
+
+                                            {/* IMAGE */}
+
+                                            {blog.image && (
+
+                                                <img
+                                                    src={blog.image}
+                                                    alt={blog.title}
+                                                    className="w-full h-44 object-cover"
+                                                />
+
+                                            )}
+
+
+                                            <div className="p-4">
+
+                                                {/* CATEGORY */}
+
+                                                <span className="inline-block text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full">
+                                                    {blog.category}
+                                                </span>
+
+
+                                                {/* TITLE */}
+
+                                                <h3 className="font-semibold text-gray-800 mt-3 line-clamp-2">
+
+                                                    {blog.title}
+
+                                                </h3>
+
+
+                                                {/* SUBTITLE */}
+
+                                                {blog.subTitle && (
+
+                                                    <p className="text-sm text-gray-500 mt-2 line-clamp-2">
+
+                                                        {blog.subTitle}
+
+                                                    </p>
+
+                                                )}
+
+
+                                                {/* STATUS */}
+
+                                                <div className="mt-4">
+
+                                                    {blog.isPublished ? (
+
+                                                        <span className="inline-block text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                                                            ✓ Published
+                                                        </span>
+
+                                                    ) : (
+
+                                                        <span className="inline-block text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">
+                                                            ⏳ Pending Approval
+                                                        </span>
+
+                                                    )}
+
+                                                </div>
+
+
+                                                {/* VIEW */}
+
+                                                {blog.isPublished && (
+
+                                                    <button
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/blog/${blog._id}`
+                                                            )
+                                                        }
+                                                        className="mt-4 text-sm text-indigo-600 font-medium hover:underline"
+                                                    >
+                                                        Read Blog →
+                                                    </button>
+
+                                                )}
+
+                                            </div>
+
+                                        </div>
+
+                                    )
+                                )}
+
+                            </div>
+
+                        )}
 
                 </div>
 

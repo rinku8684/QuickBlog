@@ -4,7 +4,8 @@ import {
     registerUser,
     loginUser,
     getUserProfile,
-    addUserBlog
+    addUserBlog,
+    getMyBlogs
 } from "../controllers/userController.js";
 
 import userAuth from "../middleware/userAuth.js";
@@ -16,25 +17,44 @@ const userRouter = express.Router();
 // USER AUTH ROUTES
 // =====================================================
 
-userRouter.post("/register", registerUser);
+// REGISTER USER
+userRouter.post(
+    "/register",
+    registerUser
+);
 
-userRouter.post("/login", loginUser);
+// LOGIN USER
+userRouter.post(
+    "/login",
+    loginUser
+);
 
+// GET LOGGED-IN USER PROFILE
 userRouter.get(
     "/profile",
     userAuth,
     getUserProfile
 );
 
+
 // =====================================================
-// ADD BLOG BY LOGGED-IN USER
+// USER BLOG ROUTES
 // =====================================================
 
+// ADD BLOG BY LOGGED-IN USER
 userRouter.post(
     "/blog/add",
     userAuth,
     upload.single("image"),
     addUserBlog
 );
+
+// GET ONLY LOGGED-IN USER'S BLOGS
+userRouter.get(
+    "/blog/my",
+    userAuth,
+    getMyBlogs
+);
+
 
 export default userRouter;

@@ -4,27 +4,36 @@ const userAuth = (req, res, next) => {
 
     try {
 
-        const token =
-            req.headers.authorization;
+        // ============================================
+        // GET TOKEN
+        // ============================================
 
+        const token = req.headers.authorization;
 
         if (!token) {
             return res.json({
                 success: false,
-                message: "Please login first"
+                message: "No token provided"
             });
         }
 
 
-        const decoded =
-            jwt.verify(
-                token,
-                process.env.JWT_SECRET
-            );
+        // ============================================
+        // VERIFY TOKEN
+        // ============================================
 
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET
+        );
+
+
+        // ============================================
+        // CHECK USER TOKEN
+        // ============================================
 
         if (
-            !decoded ||
+            decoded.type &&
             decoded.type !== "user"
         ) {
             return res.json({
@@ -34,9 +43,16 @@ const userAuth = (req, res, next) => {
         }
 
 
-        req.userId =
-            decoded.userId;
+        // ============================================
+        // SAVE USER ID
+        // ============================================
 
+        req.userId = decoded.userId;
+
+
+        // ============================================
+        // CONTINUE
+        // ============================================
 
         next();
 
@@ -49,7 +65,7 @@ const userAuth = (req, res, next) => {
 
         return res.json({
             success: false,
-            message: "Invalid or expired user session"
+            message: "Invalid or expired token"
         });
     }
 };

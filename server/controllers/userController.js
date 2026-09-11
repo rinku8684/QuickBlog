@@ -1,5 +1,4 @@
 import fs from "fs";
-
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -9,11 +8,13 @@ import imagekit from "../configs/imagekit.js";
 import User from "../models/user.js";
 import Blog from "../models/Blog.js";
 
+
 // =====================================================
 // CREATE USER TOKEN
 // =====================================================
 
 const createUserToken = (userId) => {
+
     return jwt.sign(
         {
             userId,
@@ -24,14 +25,18 @@ const createUserToken = (userId) => {
             expiresIn: "7d"
         }
     );
+
 };
+
 
 // =====================================================
 // USER REGISTER
 // =====================================================
 
 export const registerUser = async (req, res) => {
+
     try {
+
         const {
             username,
             email,
@@ -39,6 +44,7 @@ export const registerUser = async (req, res) => {
             password,
             confirmPassword
         } = req.body;
+
 
         // ---------------------------------------------
         // REQUIRED FIELDS
@@ -51,11 +57,14 @@ export const registerUser = async (req, res) => {
             !password ||
             !confirmPassword
         ) {
+
             return res.json({
                 success: false,
                 message: "All fields are required"
             });
+
         }
+
 
         // ---------------------------------------------
         // USERNAME VALIDATION
@@ -64,29 +73,36 @@ export const registerUser = async (req, res) => {
         const cleanUsername = username.trim();
 
         if (cleanUsername.length < 3) {
+
             return res.json({
                 success: false,
                 message:
                     "Username must contain at least 3 characters"
             });
+
         }
+
 
         // ---------------------------------------------
         // EMAIL VALIDATION
         // ---------------------------------------------
 
-        const cleanEmail = email.trim().toLowerCase();
+        const cleanEmail =
+            email.trim().toLowerCase();
 
         const emailRegex =
             /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         if (!emailRegex.test(cleanEmail)) {
+
             return res.json({
                 success: false,
                 message:
                     "Please enter a valid email address"
             });
+
         }
+
 
         // ---------------------------------------------
         // PHONE VALIDATION
@@ -95,49 +111,64 @@ export const registerUser = async (req, res) => {
         const cleanPhone =
             phone.replace(/\s+/g, "").trim();
 
-        const phoneRegex = /^[6-9]\d{9}$/;
+        const phoneRegex =
+            /^[6-9]\d{9}$/;
 
         if (!phoneRegex.test(cleanPhone)) {
+
             return res.json({
                 success: false,
                 message:
                     "Please enter a valid 10-digit Indian phone number"
             });
+
         }
+
 
         // ---------------------------------------------
         // PASSWORD VALIDATION
         // ---------------------------------------------
 
         if (password.length < 6) {
+
             return res.json({
                 success: false,
                 message:
                     "Password must contain at least 6 characters"
             });
+
         }
+
 
         // ---------------------------------------------
         // CONFIRM PASSWORD
         // ---------------------------------------------
 
         if (password !== confirmPassword) {
+
             return res.json({
                 success: false,
-                message: "Passwords do not match"
+                message:
+                    "Passwords do not match"
             });
+
         }
+
 
         // ---------------------------------------------
         // CHECK DATABASE
         // ---------------------------------------------
 
         if (mongoose.connection.readyState !== 1) {
+
             return res.json({
                 success: false,
-                message: "Database is not connected"
+                message:
+                    "Database is not connected"
             });
+
         }
+
 
         // ---------------------------------------------
         // CHECK EXISTING USER
@@ -158,31 +189,50 @@ export const registerUser = async (req, res) => {
                 ]
             });
 
+
         if (existingUser) {
+
             if (
                 existingUser.username.toLowerCase() ===
                 cleanUsername.toLowerCase()
             ) {
+
                 return res.json({
                     success: false,
-                    message: "Username already exists"
+                    message:
+                        "Username already exists"
                 });
+
             }
 
-            if (existingUser.email === cleanEmail) {
+
+            if (
+                existingUser.email === cleanEmail
+            ) {
+
                 return res.json({
                     success: false,
-                    message: "Email already registered"
+                    message:
+                        "Email already registered"
                 });
+
             }
 
-            if (existingUser.phone === cleanPhone) {
+
+            if (
+                existingUser.phone === cleanPhone
+            ) {
+
                 return res.json({
                     success: false,
-                    message: "Phone number already registered"
+                    message:
+                        "Phone number already registered"
                 });
+
             }
+
         }
+
 
         // ---------------------------------------------
         // HASH PASSWORD
@@ -191,17 +241,24 @@ export const registerUser = async (req, res) => {
         const hashedPassword =
             await bcrypt.hash(password, 10);
 
+
         // ---------------------------------------------
         // CREATE USER
         // ---------------------------------------------
 
         const user =
             await User.create({
+
                 username: cleanUsername,
+
                 email: cleanEmail,
+
                 phone: cleanPhone,
+
                 password: hashedPassword
+
             });
+
 
         // ---------------------------------------------
         // CREATE TOKEN
@@ -210,21 +267,37 @@ export const registerUser = async (req, res) => {
         const token =
             createUserToken(user._id);
 
+
         // ---------------------------------------------
         // RESPONSE
         // ---------------------------------------------
 
         res.json({
+
             success: true,
-            message: "Registration successful",
+
+            message:
+                "Registration successful",
+
             token,
+
             user: {
+
                 id: user._id,
-                username: user.username,
-                email: user.email,
-                phone: user.phone
+
+                username:
+                    user.username,
+
+                email:
+                    user.email,
+
+                phone:
+                    user.phone
+
             }
+
         });
+
 
     } catch (error) {
 
@@ -234,23 +307,32 @@ export const registerUser = async (req, res) => {
         );
 
         res.json({
+
             success: false,
-            message: error.message
+
+            message:
+                error.message
+
         });
+
     }
+
 };
+
 
 // =====================================================
 // USER LOGIN
 // =====================================================
 
 export const loginUser = async (req, res) => {
+
     try {
 
         const {
             identifier,
             password
         } = req.body;
+
 
         // ---------------------------------------------
         // REQUIRED FIELDS
@@ -260,15 +342,22 @@ export const loginUser = async (req, res) => {
             !identifier?.trim() ||
             !password
         ) {
+
             return res.json({
+
                 success: false,
+
                 message:
                     "Email, username or phone number and password are required"
+
             });
+
         }
+
 
         const value =
             identifier.trim();
+
 
         // ---------------------------------------------
         // FIND USER
@@ -276,15 +365,19 @@ export const loginUser = async (req, res) => {
 
         const user =
             await User.findOne({
+
                 $or: [
+
                     {
                         email:
                             value.toLowerCase()
                     },
+
                     {
                         username:
                             value
                     },
+
                     {
                         phone:
                             value.replace(
@@ -292,16 +385,25 @@ export const loginUser = async (req, res) => {
                                 ""
                             )
                     }
+
                 ]
+
             });
 
+
         if (!user) {
+
             return res.json({
+
                 success: false,
+
                 message:
                     "Invalid email, username or phone number"
+
             });
+
         }
+
 
         // ---------------------------------------------
         // CHECK PASSWORD
@@ -313,12 +415,20 @@ export const loginUser = async (req, res) => {
                 user.password
             );
 
+
         if (!passwordMatch) {
+
             return res.json({
+
                 success: false,
-                message: "Invalid password"
+
+                message:
+                    "Invalid password"
+
             });
+
         }
+
 
         // ---------------------------------------------
         // CREATE TOKEN
@@ -327,21 +437,37 @@ export const loginUser = async (req, res) => {
         const token =
             createUserToken(user._id);
 
+
         // ---------------------------------------------
         // RESPONSE
         // ---------------------------------------------
 
         res.json({
+
             success: true,
-            message: "Login successful",
+
+            message:
+                "Login successful",
+
             token,
+
             user: {
+
                 id: user._id,
-                username: user.username,
-                email: user.email,
-                phone: user.phone
+
+                username:
+                    user.username,
+
+                email:
+                    user.email,
+
+                phone:
+                    user.phone
+
             }
+
         });
+
 
     } catch (error) {
 
@@ -351,17 +477,25 @@ export const loginUser = async (req, res) => {
         );
 
         res.json({
+
             success: false,
-            message: error.message
+
+            message:
+                error.message
+
         });
+
     }
+
 };
+
 
 // =====================================================
 // GET LOGGED-IN USER
 // =====================================================
 
 export const getUserProfile = async (req, res) => {
+
     try {
 
         const user =
@@ -369,17 +503,29 @@ export const getUserProfile = async (req, res) => {
                 req.userId
             ).select("-password");
 
+
         if (!user) {
+
             return res.json({
+
                 success: false,
-                message: "User not found"
+
+                message:
+                    "User not found"
+
             });
+
         }
 
+
         res.json({
+
             success: true,
+
             user
+
         });
+
 
     } catch (error) {
 
@@ -389,11 +535,18 @@ export const getUserProfile = async (req, res) => {
         );
 
         res.json({
+
             success: false,
-            message: error.message
+
+            message:
+                error.message
+
         });
+
     }
+
 };
+
 
 // =====================================================
 // ADD BLOG BY USER
@@ -405,6 +558,25 @@ export const addUserBlog = async (req, res) => {
 
     try {
 
+
+        // ---------------------------------------------
+        // CHECK LOGIN
+        // ---------------------------------------------
+
+        if (!req.userId) {
+
+            return res.json({
+
+                success: false,
+
+                message:
+                    "User authentication required"
+
+            });
+
+        }
+
+
         // ---------------------------------------------
         // GET LOGGED-IN USER
         // ---------------------------------------------
@@ -414,12 +586,20 @@ export const addUserBlog = async (req, res) => {
                 req.userId
             ).select("-password");
 
+
         if (!user) {
+
             return res.json({
+
                 success: false,
-                message: "User not found"
+
+                message:
+                    "User not found"
+
             });
+
         }
+
 
         // ---------------------------------------------
         // GET BLOG DATA
@@ -430,22 +610,36 @@ export const addUserBlog = async (req, res) => {
                 req.body.blog || "{}"
             );
 
+
         const {
             title,
             subTitle,
             description,
-            category
+            category,
+            metaTitle,
+            metaDescription,
+            slug,
+            focusKeyword,
+            seoKeywords,
+            seoTips
         } = blogData;
+
 
         // ---------------------------------------------
         // GET IMAGE
         // ---------------------------------------------
 
-        const imageFile = req.file;
+        const imageFile =
+            req.file;
+
 
         if (imageFile) {
-            imageFilePath = imageFile.path;
+
+            imageFilePath =
+                imageFile.path;
+
         }
+
 
         // ---------------------------------------------
         // VALIDATION
@@ -457,12 +651,18 @@ export const addUserBlog = async (req, res) => {
             !category?.trim() ||
             !imageFile
         ) {
+
             return res.json({
+
                 success: false,
+
                 message:
                     "Title, content, category and thumbnail are required"
+
             });
+
         }
+
 
         // ---------------------------------------------
         // READ IMAGE FILE
@@ -473,17 +673,24 @@ export const addUserBlog = async (req, res) => {
                 imageFile.path
             );
 
+
         // ---------------------------------------------
         // UPLOAD IMAGE TO IMAGEKIT
         // ---------------------------------------------
 
         const response =
             await imagekit.upload({
+
                 file: fileBuffer,
+
                 fileName:
                     imageFile.originalname,
-                folder: "/blogs"
+
+                folder:
+                    "/blogs"
+
             });
+
 
         // ---------------------------------------------
         // OPTIMIZE IMAGE
@@ -491,23 +698,34 @@ export const addUserBlog = async (req, res) => {
 
         const optimizedImageUrl =
             imagekit.url({
-                path: response.filePath,
+
+                path:
+                    response.filePath,
 
                 transformation: [
+
                     {
-                        quality: "auto"
+                        quality:
+                            "auto"
                     },
+
                     {
-                        format: "webp"
+                        format:
+                            "webp"
                     },
+
                     {
-                        width: "1280"
+                        width:
+                            "1280"
                     }
+
                 ]
+
             });
 
+
         // ---------------------------------------------
-        // CREATE BLOG
+        // CREATE USER BLOG
         // ---------------------------------------------
 
         const blog =
@@ -528,12 +746,20 @@ export const addUserBlog = async (req, res) => {
                 image:
                     optimizedImageUrl,
 
-                // IMPORTANT:
-                // User blogs require admin approval
-                isPublished:
-                    false,
 
+                // =====================================
+                // IMPORTANT
+                // USER BLOG DIRECTLY PUBLISHED
+                // =====================================
+
+                isPublished:
+                    true,
+
+
+                // =====================================
                 // USER INFORMATION
+                // =====================================
+
                 author:
                     user._id,
 
@@ -541,21 +767,53 @@ export const addUserBlog = async (req, res) => {
                     user.username,
 
                 authorEmail:
-                    user.email
+                    user.email,
+
+
+                // =====================================
+                // SEO INFORMATION
+                // =====================================
+
+                metaTitle:
+                    metaTitle?.trim() || "",
+
+                metaDescription:
+                    metaDescription?.trim() || "",
+
+                slug:
+                    slug?.trim() || "",
+
+                focusKeyword:
+                    focusKeyword?.trim() || "",
+
+                seoKeywords:
+                    Array.isArray(seoKeywords)
+                        ? seoKeywords
+                        : [],
+
+                seoTips:
+                    Array.isArray(seoTips)
+                        ? seoTips
+                        : []
+
             });
+
 
         // ---------------------------------------------
         // SUCCESS RESPONSE
         // ---------------------------------------------
 
         res.json({
+
             success: true,
 
             message:
-                "Blog submitted successfully. Waiting for admin approval.",
+                "Blog published successfully.",
 
             blog
+
         });
+
 
     } catch (error) {
 
@@ -565,12 +823,16 @@ export const addUserBlog = async (req, res) => {
         );
 
         res.json({
+
             success: false,
+
             message:
                 error.message
+
         });
 
     } finally {
+
 
         // ---------------------------------------------
         // DELETE TEMPORARY IMAGE
@@ -578,15 +840,105 @@ export const addUserBlog = async (req, res) => {
 
         if (
             imageFilePath &&
-            fs.existsSync(imageFilePath)
+            fs.existsSync(
+                imageFilePath
+            )
         ) {
+
             try {
+
                 fs.unlinkSync(
                     imageFilePath
                 );
+
             } catch (_) {
+
                 // Ignore file deletion error
+
             }
+
         }
+
     }
+
+};
+
+
+// =====================================================
+// GET MY BLOGS - LOGGED IN USER
+// =====================================================
+
+export const getMyBlogs = async (req, res) => {
+
+    try {
+
+
+        // ---------------------------------------------
+        // CHECK LOGIN
+        // ---------------------------------------------
+
+        if (!req.userId) {
+
+            return res.json({
+
+                success: false,
+
+                message:
+                    "User authentication required"
+
+            });
+
+        }
+
+
+        // ---------------------------------------------
+        // GET USER BLOGS
+        // ---------------------------------------------
+
+        const blogs =
+            await Blog.find({
+
+                author:
+                    req.userId
+
+            })
+                .sort({
+
+                    createdAt:
+                        -1
+
+                });
+
+
+        // ---------------------------------------------
+        // RESPONSE
+        // ---------------------------------------------
+
+        res.json({
+
+            success: true,
+
+            blogs
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Get My Blogs Error:",
+            error
+        );
+
+        res.json({
+
+            success: false,
+
+            message:
+                error.message
+
+        });
+
+    }
+
 };

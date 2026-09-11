@@ -31,10 +31,11 @@ import Register from "./pages/Register";
 import RoleSelection from "./pages/RoleSelection";
 
 // =========================
-// Other pages
+// User pages
 // =========================
 import Profile from "./pages/Profile";
 import AddBlog from "./pages/AddBlog";
+import MyBlogs from "./pages/MyBlogs";
 
 import "quill/dist/quill.snow.css";
 import { Toaster } from "react-hot-toast";
@@ -78,14 +79,6 @@ const App = () => {
             LOGIN ROLE SELECTION
         ========================================= */}
 
-        {/* 
-            Main Login button/page
-
-            User will first see:
-            Login as Admin
-            Login as User
-        */}
-
         <Route
           path="/login"
           element={<RoleSelection />}
@@ -96,15 +89,11 @@ const App = () => {
             USER AUTHENTICATION
         ========================================= */}
 
-        {/* Actual User Login */}
-
         <Route
           path="/user-login"
           element={<Login />}
         />
 
-
-        {/* User Register */}
 
         <Route
           path="/register"
@@ -112,15 +101,23 @@ const App = () => {
         />
 
 
-        {/* User Profile */}
+        {/* =========================================
+            USER PROFILE
+        ========================================= */}
 
         <Route
           path="/profile"
-          element={<Profile />}
+          element={
+            userToken
+              ? <Profile />
+              : <Login />
+          }
         />
 
 
-        {/* User Add Blog */}
+        {/* =========================================
+            USER ADD BLOG
+        ========================================= */}
 
         <Route
           path="/add-blog"
@@ -133,14 +130,23 @@ const App = () => {
 
 
         {/* =========================================
-            ADMIN LOGIN
+            MY BLOGS
+            Only logged-in user's blogs
         ========================================= */}
 
-        {/* 
-            Actual Admin Login page
+        <Route
+          path="/my-blogs"
+          element={
+            userToken
+              ? <MyBlogs />
+              : <Login />
+          }
+        />
 
-            RoleSelection se yahan aayega
-        */}
+
+        {/* =========================================
+            ADMIN LOGIN
+        ========================================= */}
 
         <Route
           path="/admin-login"
