@@ -41,7 +41,6 @@ const AddBlog = () => {
 
     const [subtitle, setSubtitle] = useState("");
 
-    // Default category = All
     const [category, setCategory] = useState("All");
 
 
@@ -478,7 +477,7 @@ const AddBlog = () => {
 
 
     // ============================================
-    // SUBMIT BLOG
+    // PUBLISH BLOG
     // ============================================
 
     const onSubmitHandler = async (e) => {
@@ -565,12 +564,18 @@ const AddBlog = () => {
 
                 category,
 
-                // USER BLOG ALWAYS PENDING
-                isPublished:
-                    false,
+                // ====================================
+                // USER BLOG DIRECTLY PUBLISHED
+                // ====================================
 
-                // SAVE SEO IF GENERATED
+                isPublished: true,
+
+                // ----------------------------------------
+                // SAVE SEO DATA IF GENERATED
+                // ----------------------------------------
+
                 ...(seoData || {})
+
             };
 
 
@@ -595,7 +600,7 @@ const AddBlog = () => {
 
 
             // ----------------------------------------
-            // SEND TO USER BLOG API
+            // SEND BLOG TO BACKEND
             // ----------------------------------------
 
             const { data } =
@@ -621,7 +626,7 @@ const AddBlog = () => {
 
                 toast.error(
                     data.message ||
-                    "Unable to submit blog"
+                    "Unable to publish blog"
                 );
 
                 return;
@@ -630,7 +635,7 @@ const AddBlog = () => {
 
             toast.success(
                 data.message ||
-                "Blog submitted successfully"
+                "Blog published successfully"
             );
 
 
@@ -644,7 +649,6 @@ const AddBlog = () => {
 
             setSubtitle("");
 
-            // Reset category to All
             setCategory("All");
 
             setAnalysis(null);
@@ -682,14 +686,14 @@ const AddBlog = () => {
         } catch (error) {
 
             console.error(
-                "User Add Blog Error:",
+                "User Publish Blog Error:",
                 error
             );
 
             toast.error(
                 error.response?.data?.message ||
                 error.message ||
-                "Unable to submit blog"
+                "Unable to publish blog"
             );
 
         } finally {
@@ -900,13 +904,11 @@ const AddBlog = () => {
                     className="mt-2 px-3 py-3 border border-gray-300 outline-none rounded"
                 >
 
-                    {/* ALL OPTION */}
                     <option value="All">
                         All
                     </option>
 
 
-                    {/* OTHER CATEGORIES */}
                     {blogCategories.map(
                         (item, index) => (
 
@@ -924,7 +926,7 @@ const AddBlog = () => {
 
 
                 {/* =====================================
-                    MAIN AI BUTTONS
+                    AI BUTTONS
                 ===================================== */}
 
                 <div className="flex flex-wrap gap-2 mt-7">
@@ -1224,24 +1226,7 @@ const AddBlog = () => {
 
 
                 {/* =====================================
-                    APPROVAL MESSAGE
-                ===================================== */}
-
-                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-
-                    <p className="text-sm text-yellow-800">
-
-                        <strong>Note:</strong>{" "}
-                        Your blog will be submitted for admin review.
-                        It will appear publicly only after approval.
-
-                    </p>
-
-                </div>
-
-
-                {/* =====================================
-                    SUBMIT BUTTON
+                    PUBLISH BUTTON
                 ===================================== */}
 
                 <button
@@ -1252,8 +1237,8 @@ const AddBlog = () => {
                 >
 
                     {isAdding
-                        ? "Submitting..."
-                        : "Submit Blog"}
+                        ? "Publishing..."
+                        : "Publish Blog"}
 
                 </button>
 
