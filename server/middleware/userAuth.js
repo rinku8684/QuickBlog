@@ -1,19 +1,49 @@
 import jwt from "jsonwebtoken";
 
 const userAuth = (req, res, next) => {
-
     try {
 
         // ============================================
-        // GET TOKEN
+        // GET AUTHORIZATION HEADER
         // ============================================
 
-        const token = req.headers.authorization;
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader) {
+            return res.json({
+                success: false,
+                message: "No token provided"
+            });
+        }
+
+
+        // ============================================
+        // GET ACTUAL TOKEN
+        // ============================================
+
+        const token = authHeader.startsWith("Bearer ")
+            ? authHeader.split(" ")[1]
+            : authHeader;
+
 
         if (!token) {
             return res.json({
                 success: false,
-                message: "No token provided"
+                message: "Invalid token"
+            });
+        }
+
+
+        // ============================================
+        // CHECK JWT SECRET
+        // ============================================
+
+        if (!process.env.JWT_SECRET) {
+            console.error("JWT_SECRET is missing in .env");
+
+            return res.json({
+                success: false,
+                message: "JWT secret is not configured"
             });
         }
 
@@ -29,13 +59,25 @@ const userAuth = (req, res, next) => {
 
 
         // ============================================
-        // CHECK USER TOKEN
+        // CHECK USER TOKEN TYPE
         // ============================================
 
         if (
             decoded.type &&
             decoded.type !== "user"
         ) {
+            return res.json({
+                success: false,
+                message: "Invalid user token"
+            });
+        }
+
+
+        // ============================================
+        // CHECK USER ID
+        // ============================================
+
+        if (!decoded.userId) {
             return res.json({
                 success: false,
                 message: "Invalid user token"
@@ -51,7 +93,7 @@ const userAuth = (req, res, next) => {
 
 
         // ============================================
-        // CONTINUE
+        // CONTINUE REQUEST
         // ============================================
 
         next();
@@ -60,7 +102,7 @@ const userAuth = (req, res, next) => {
 
         console.error(
             "User Auth Error:",
-            error
+            error.message
         );
 
         return res.json({

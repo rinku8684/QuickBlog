@@ -477,7 +477,7 @@ const AddBlog = () => {
 
 
     // ============================================
-    // PUBLISH BLOG
+    // SUBMIT BLOG FOR ADMIN APPROVAL
     // ============================================
 
     const onSubmitHandler = async (e) => {
@@ -564,11 +564,17 @@ const AddBlog = () => {
 
                 category,
 
+
                 // ====================================
-                // USER BLOG DIRECTLY PUBLISHED
+                // IMPORTANT
+                // USER BLOG WILL NOT BE PUBLISHED
+                // DIRECTLY.
+                //
+                // FALSE = PENDING ADMIN APPROVAL
                 // ====================================
 
-                isPublished: true,
+                isPublished: false,
+
 
                 // ----------------------------------------
                 // SAVE SEO DATA IF GENERATED
@@ -626,16 +632,20 @@ const AddBlog = () => {
 
                 toast.error(
                     data.message ||
-                    "Unable to publish blog"
+                    "Unable to submit blog"
                 );
 
                 return;
             }
 
 
+            // ----------------------------------------
+            // SUCCESS
+            // ----------------------------------------
+
             toast.success(
                 data.message ||
-                "Blog published successfully"
+                "Blog submitted successfully. Waiting for admin approval."
             );
 
 
@@ -686,14 +696,14 @@ const AddBlog = () => {
         } catch (error) {
 
             console.error(
-                "User Publish Blog Error:",
+                "User Submit Blog Error:",
                 error
             );
 
             toast.error(
                 error.response?.data?.message ||
                 error.message ||
-                "Unable to publish blog"
+                "Unable to submit blog"
             );
 
         } finally {
@@ -1226,19 +1236,19 @@ const AddBlog = () => {
 
 
                 {/* =====================================
-                    PUBLISH BUTTON
+                    SUBMIT FOR APPROVAL BUTTON
                 ===================================== */}
 
                 <button
                     type="submit"
                     disabled={isAdding}
 
-                    className="mt-7 w-48 h-11 bg-[#F25022] text-white rounded cursor-pointer text-sm disabled:opacity-60"
+                    className="mt-7 w-56 h-11 bg-[#F25022] text-white rounded cursor-pointer text-sm disabled:opacity-60"
                 >
 
                     {isAdding
-                        ? "Publishing..."
-                        : "Publish Blog"}
+                        ? "Submitting..."
+                        : "Submit for Approval"}
 
                 </button>
 

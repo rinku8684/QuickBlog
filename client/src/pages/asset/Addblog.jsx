@@ -518,12 +518,6 @@ const Addblog = () => {
 
         category,
 
-        // IMPORTANT
-        // false = Draft
-        // true = Published
-        isPublished:
-          Boolean(publishStatus),
-
         // AI SEO DATA
         ...(seoData || {})
 

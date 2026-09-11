@@ -176,17 +176,23 @@ export const registerUser = async (req, res) => {
 
         const existingUser =
             await User.findOne({
+
                 $or: [
+
                     {
                         username: cleanUsername
                     },
+
                     {
                         email: cleanEmail
                     },
+
                     {
                         phone: cleanPhone
                     }
+
                 ]
+
             });
 
 
@@ -748,12 +754,15 @@ export const addUserBlog = async (req, res) => {
 
 
                 // =====================================
-                // IMPORTANT
-                // USER BLOG DIRECTLY PUBLISHED
+                // IMPORTANT:
+                // USER BLOG WILL NOT BE PUBLISHED
+                // DIRECTLY.
+                //
+                // ADMIN MUST APPROVE IT FIRST.
                 // =====================================
 
                 isPublished:
-                    true,
+                    false,
 
 
                 // =====================================
@@ -808,7 +817,7 @@ export const addUserBlog = async (req, res) => {
             success: true,
 
             message:
-                "Blog published successfully.",
+                "Blog submitted successfully and is waiting for admin approval.",
 
             blog
 
