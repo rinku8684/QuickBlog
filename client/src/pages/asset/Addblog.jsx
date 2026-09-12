@@ -1,1420 +1,1248 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { assets, blogCategories } from '../../assets/assets'
-import Quill from 'quill'
-import { useAppContext } from '../../context/AppContext'
-import toast from 'react-hot-toast'
-import { parse } from 'marked'
-import AIStudio from '../../components/admin/AIStudio'
+import React, {
+    useEffect,
+    useRef,
+    useState
+} from "react";
 
-const Addblog = () => {
+import {
+    assets,
+    blogCategories
+} from "../assets/assets";
 
-  const { axios } = useAppContext()
+import Quill from "quill";
 
-  const [isAdding, setIsAdding] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [analyzing, setAnalyzing] = useState(false)
-  const [analysis, setAnalysis] = useState(null)
+import {
+    useAppContext
+} from "../context/AppContext";
 
-  const editorRef = useRef(null)
-  const quillRef = useRef(null)
+import toast from "react-hot-toast";
 
-  const [image, setImage] = useState(false)
-  const [title, setTitle] = useState('')
-  const [subtitle, setSubTitle] = useState('')
-  const [category, setCategory] = useState('Startup')
-  const [isPublished, setIsPublished] = useState(false)
+import {
+    parse
+} from "marked";
 
-  // AI generated SEO data
-  const [seoData, setSeoData] = useState(null)
+import AIStudio from "../components/admin/AIStudio";
 
-  // =====================================================
-  // SANITIZE ERROR MESSAGE
-  // =====================================================
 
-  const sanitizeMessage = (msg) => {
+const AddBlog = () => {
 
-    if (!msg) {
-      return 'An error occurred'
-    }
+    const {
+        axios,
+        userToken,
+        user
+    } = useAppContext();
 
-    const s =
-      typeof msg === 'string'
-        ? msg
-        : JSON.stringify(msg)
 
-    if (s.trim().startsWith('{')) {
+    // =================================================
+    // REFS
+    // =================================================
 
-      try {
+    const editorRef = useRef(null);
 
-        const p = JSON.parse(s)
+    const quillRef = useRef(null);
 
-        if (p?.error?.message) {
-          return p.error.message
+
+    // =================================================
+    // BLOG STATES
+    // =================================================
+
+    const [image, setImage] = useState(null);
+
+    const [title, setTitle] = useState("");
+
+    const [subtitle, setSubtitle] = useState("");
+
+    const [category, setCategory] =
+        useState("All");
+
+
+    // =================================================
+    // LOADING STATES
+    // =================================================
+
+    const [isAdding, setIsAdding] =
+        useState(false);
+
+    const [loading, setLoading] =
+        useState(false);
+
+    const [analyzing, setAnalyzing] =
+        useState(false);
+
+
+    // =================================================
+    // AI STATES
+    // =================================================
+
+    const [analysis, setAnalysis] =
+        useState(null);
+
+    const [seoData, setSeoData] =
+        useState(null);
+
+
+    // =================================================
+    // INITIALIZE QUILL
+    // =================================================
+
+    useEffect(() => {
+
+        if (
+            !quillRef.current &&
+            editorRef.current
+        ) {
+
+            quillRef.current =
+                new Quill(
+                    editorRef.current,
+                    {
+                        theme: "snow",
+
+                        placeholder:
+                            "Write your blog content here...",
+
+                        modules: {
+
+                            toolbar: [
+
+                                [
+                                    {
+                                        header: [
+                                            1,
+                                            2,
+                                            3,
+                                            false
+                                        ]
+                                    }
+                                ],
+
+                                [
+                                    "bold",
+                                    "italic",
+                                    "underline",
+                                    "strike"
+                                ],
+
+                                [
+                                    {
+                                        list: "ordered"
+                                    },
+                                    {
+                                        list: "bullet"
+                                    }
+                                ],
+
+                                [
+                                    "link",
+                                    "blockquote"
+                                ],
+
+                                [
+                                    {
+                                        align: []
+                                    }
+                                ],
+
+                                [
+                                    {
+                                        color: []
+                                    },
+                                    {
+                                        background: []
+                                    }
+                                ],
+
+                                [
+                                    "clean"
+                                ]
+                            ]
+                        }
+                    }
+                );
         }
 
-        if (p?.message) {
-          return String(p.message)
+    }, []);
+
+
+    // =================================================
+    // CHECK EDITOR EMPTY
+    // =================================================
+
+    const isEditorEmpty = () => {
+
+        if (!quillRef.current) {
+            return true;
         }
 
-      } catch (_) {}
+        const text =
+            quillRef.current
+                .getText()
+                ?.trim() || "";
 
-    }
+        return text.length === 0;
+    };
 
-    return s.length > 240
-      ? s.slice(0, 240) + '…'
-      : s
-  }
 
-  // =====================================================
-  // GET CURRENT QUILL CONTENT
-  // =====================================================
+    // =================================================
+    // GENERATE BLOG WITH AI
+    // =================================================
 
-  const getCurrentContent = () => {
+    const generateContent = async () => {
 
-    if (!quillRef.current) {
-      return ''
-    }
-
-    return quillRef.current.root.innerHTML || ''
-
-  }
-
-  // =====================================================
-  // CHECK EMPTY QUILL CONTENT
-  // =====================================================
-
-  const isEditorEmpty = () => {
-
-    if (!quillRef.current) {
-      return true
-    }
-
-    const text =
-      quillRef.current.getText()?.trim() || ''
-
-    return text.length === 0
-  }
-
-  // =====================================================
-  // SET QUILL CONTENT
-  // =====================================================
-
-  const setQuillContent = (html) => {
-
-    if (!quillRef.current) {
-      return
-    }
-
-    try {
-
-      quillRef.current.setContents([])
-
-      if (html) {
-
-        quillRef.current.clipboard.dangerouslyPasteHTML(
-          html
-        )
-
-      }
-
-    } catch (error) {
-
-      console.error(
-        'Quill content update error:',
-        error
-      )
-
-    }
-
-  }
-
-  // =====================================================
-  // GENERATE BLOG WITH AI
-  // =====================================================
-
-  const generateContent = async () => {
-
-    if (loading) {
-      return
-    }
-
-    if (!title.trim()) {
-
-      toast.error(
-        'Please enter a title'
-      )
-
-      return
-    }
-
-    try {
-
-      setLoading(true)
-
-      const { data } =
-        await axios.post(
-          '/api/blog/generate',
-          {
-            prompt: title.trim()
-          }
-        )
-
-      if (!data.success) {
-
-        toast.error(
-          sanitizeMessage(data.message),
-          {
-            id: 'gen-error'
-          }
-        )
-
-        return
-      }
-
-      if (!data.content) {
-
-        toast.error(
-          'AI did not return any blog content',
-          {
-            id: 'gen-error'
-          }
-        )
-
-        return
-      }
-
-      const htmlContent =
-        parse(
-          String(data.content)
-        )
-
-      setQuillContent(
-        htmlContent
-      )
-
-      setAnalysis(null)
-
-      toast.success(
-        'Blog content generated successfully',
-        {
-          id: 'gen-success'
+        if (loading) {
+            return;
         }
-      )
 
-    } catch (error) {
+        if (!title.trim()) {
 
-      console.error(
-        'Generate blog error:',
-        error
-      )
+            toast.error(
+                "Please enter a blog title"
+            );
 
-      toast.error(
-        sanitizeMessage(
-          error.response?.data?.message ||
-          error.message ||
-          error
-        ),
-        {
-          id: 'gen-error'
+            return;
         }
-      )
 
-    } finally {
+        try {
 
-      setLoading(false)
+            setLoading(true);
 
-    }
+            const {
+                data
+            } = await axios.post(
+                "/api/blog/generate",
 
-  }
+                {
+                    prompt: title
+                },
 
-  // =====================================================
-  // IMPROVE BLOG WITH AI
-  // =====================================================
+                {
+                    headers: {
+                        Authorization:
+                            userToken
+                    }
+                }
+            );
 
-  const improveBlog = async () => {
 
-    if (loading) {
-      return
-    }
+            if (data.success) {
 
-    if (isEditorEmpty()) {
+                const html =
+                    parse(
+                        data.content || ""
+                    );
 
-      toast.error(
-        'Please write some blog content first'
-      )
+                if (quillRef.current) {
 
-      return
-    }
+                    quillRef.current
+                        .clipboard
+                        .dangerouslyPasteHTML(
+                            html
+                        );
+                }
 
-    try {
+                toast.success(
+                    "Blog content generated"
+                );
 
-      setLoading(true)
+            } else {
 
-      const currentContent =
-        getCurrentContent()
-
-      const { data } =
-        await axios.post(
-          '/api/blog/improve',
-          {
-            title: title.trim(),
-            subTitle: subtitle.trim(),
-            description: currentContent,
-            category,
-            suggestions:
-              'Make the blog more professional, engaging and easy to read.'
-          }
-        )
-
-      if (!data.success) {
-
-        toast.error(
-          sanitizeMessage(data.message),
-          {
-            id: 'improve-error'
-          }
-        )
-
-        return
-      }
-
-      if (!data.content) {
-
-        toast.error(
-          'AI did not return improved content',
-          {
-            id: 'improve-error'
-          }
-        )
-
-        return
-      }
-
-      const htmlContent =
-        parse(
-          String(data.content)
-        )
-
-      setQuillContent(
-        htmlContent
-      )
-
-      setAnalysis(null)
-
-      toast.success(
-        'Blog improved successfully',
-        {
-          id: 'improve-success'
-        }
-      )
-
-    } catch (error) {
-
-      console.error(
-        'Improve blog error:',
-        error
-      )
-
-      toast.error(
-        sanitizeMessage(
-          error.response?.data?.message ||
-          error.message ||
-          error
-        ),
-        {
-          id: 'improve-error'
-        }
-      )
-
-    } finally {
-
-      setLoading(false)
-
-    }
-
-  }
-
-  // =====================================================
-  // ANALYZE BLOG WITH AI
-  // =====================================================
-
-  const analyzeBlog = async () => {
-
-    if (analyzing || loading) {
-      return
-    }
-
-    if (!title.trim()) {
-
-      return toast.error(
-        'Please enter a blog title'
-      )
-
-    }
-
-    if (isEditorEmpty()) {
-
-      return toast.error(
-        'Please generate or write some blog content first'
-      )
-
-    }
-
-    try {
-
-      setAnalyzing(true)
-      setAnalysis(null)
-
-      const blogContent =
-        getCurrentContent()
-
-      console.log(
-        'Analyze Request:',
-        {
-          title,
-          content: blogContent,
-          category
-        }
-      )
-
-      const { data } =
-        await axios.post(
-          '/api/blog/analyze',
-          {
-            title: title.trim(),
-            content: blogContent,
-            category: category || 'General'
-          }
-        )
-
-      if (data.success) {
-
-        setAnalysis(
-          data.analysis
-        )
-
-        toast.success(
-          'Blog analysis completed',
-          {
-            id: 'analysis-success'
-          }
-        )
-
-      } else {
-
-        toast.error(
-          sanitizeMessage(
-            data.message
-          ),
-          {
-            id: 'analysis-error'
-          }
-        )
-
-      }
-
-    } catch (error) {
-
-      console.error(
-        'Analysis error:',
-        error
-      )
-
-      toast.error(
-        sanitizeMessage(
-          error.response?.data?.message ||
-          error.message ||
-          error
-        ),
-        {
-          id: 'analysis-error'
-        }
-      )
-
-    } finally {
-
-      setAnalyzing(false)
-
-    }
-
-  }
-
-  // =====================================================
-  // ADD BLOG
-  // =====================================================
-
-  const onSubmitHandler = async (
-    e,
-    publishStatus = isPublished
-  ) => {
-
-    e.preventDefault()
-
-    if (isAdding) {
-      return
-    }
-
-    // IMAGE
-    if (!image) {
-
-      toast.error(
-        'Please upload a thumbnail'
-      )
-
-      return
-    }
-
-    // TITLE
-    if (!title.trim()) {
-
-      toast.error(
-        'Please enter a blog title'
-      )
-
-      return
-    }
-
-    // CONTENT
-    if (isEditorEmpty()) {
-
-      toast.error(
-        'Please write or generate blog content first'
-      )
-
-      return
-    }
-
-    // CATEGORY
-    if (!category) {
-
-      toast.error(
-        'Please select a blog category'
-      )
-
-      return
-    }
-
-    try {
-
-      setIsAdding(true)
-
-      const blogContent =
-        getCurrentContent()
-
-      // =================================================
-      // BLOG DATA
-      // =================================================
-
-      const blog = {
-
-        title:
-          title.trim(),
-
-        subTitle:
-          subtitle.trim(),
-
-        description:
-          blogContent,
-
-        category,
-
-        // AI SEO DATA
-        ...(seoData || {})
-
-      }
-
-      console.log(
-        'Blog Submit Data:',
-        blog
-      )
-
-      // =================================================
-      // FORM DATA
-      // =================================================
-
-      const formData =
-        new FormData()
-
-      formData.append(
-        'blog',
-        JSON.stringify(blog)
-      )
-
-      formData.append(
-        'image',
-        image
-      )
-
-      // =================================================
-      // API REQUEST
-      // =================================================
-
-      const { data } =
-        await axios.post(
-          '/api/blog/add',
-          formData
-        )
-
-      if (!data.success) {
-
-        toast.error(
-          sanitizeMessage(
-            data.message
-          ),
-          {
-            id: 'add-error'
-          }
-        )
-
-        return
-      }
-
-      // =================================================
-      // SUCCESS MESSAGE
-      // =================================================
-
-      toast.success(
-        publishStatus
-          ? 'Blog published successfully'
-          : 'Blog saved as draft successfully',
-        {
-          id: 'add-success'
-        }
-      )
-
-      // =================================================
-      // RESET FORM
-      // =================================================
-
-      setImage(false)
-
-      setTitle('')
-
-      setSubTitle('')
-
-      setCategory('Startup')
-
-      setIsPublished(false)
-
-      setAnalysis(null)
-
-      setSeoData(null)
-
-      // CLEAR QUILL
-      if (quillRef.current) {
-
-        quillRef.current.setContents([])
-
-      }
-
-      // CLEAR FILE INPUT
-      const fileInput =
-        document.getElementById('image')
-
-      if (fileInput) {
-        fileInput.value = ''
-      }
-
-    } catch (error) {
-
-      console.error(
-        'Add blog error:',
-        error
-      )
-
-      toast.error(
-        sanitizeMessage(
-          error.response?.data?.message ||
-          error.message ||
-          error
-        ),
-        {
-          id: 'add-error'
-        }
-      )
-
-    } finally {
-
-      setIsAdding(false)
-
-    }
-
-  }
-
-  // =====================================================
-  // INITIALIZE QUILL
-  // =====================================================
-
-  useEffect(() => {
-
-    if (
-      !quillRef.current &&
-      editorRef.current
-    ) {
-
-      quillRef.current =
-        new Quill(
-          editorRef.current,
-          {
-            theme: 'snow',
-
-            placeholder:
-              'Write your blog content here...',
-
-            modules: {
-
-              toolbar: [
-
-                [
-                  {
-                    header: [
-                      1,
-                      2,
-                      3,
-                      false
-                    ]
-                  }
-                ],
-
-                [
-                  'bold',
-                  'italic',
-                  'underline',
-                  'strike'
-                ],
-
-                [
-                  {
-                    list: 'ordered'
-                  },
-                  {
-                    list: 'bullet'
-                  }
-                ],
-
-                [
-                  'link',
-                  'blockquote'
-                ],
-
-                [
-                  {
-                    align: []
-                  }
-                ],
-
-                [
-                  {
-                    color: []
-                  },
-                  {
-                    background: []
-                  }
-                ],
-
-                [
-                  'clean'
-                ]
-
-              ]
-
+                toast.error(
+                    data.message ||
+                    "Unable to generate blog"
+                );
             }
 
-          }
-        )
+        } catch (error) {
 
-    }
+            console.error(
+                "Generate Blog Error:",
+                error
+            );
 
-  }, [])
+            toast.error(
+                error.response?.data?.message ||
+                error.message ||
+                "Unable to generate blog"
+            );
 
-  // =====================================================
-  // IMAGE PREVIEW
-  // =====================================================
+        } finally {
 
-  const imagePreview =
-    image
-      ? URL.createObjectURL(image)
-      : assets.upload_area
+            setLoading(false);
+        }
+    };
 
-  // =====================================================
-  // UI
-  // =====================================================
 
-  return (
+    // =================================================
+    // IMPROVE BLOG
+    // =================================================
 
-    <form
-      onSubmit={onSubmitHandler}
-      className='flex-1 bg-blue-50/50 text-gray-600 h-full overflow-scroll'
-    >
+    const improveBlog = async () => {
 
-      <div className='bg-white w-full max-w-4xl p-4 md:p-10 shadow rounded'>
+        if (loading) {
+            return;
+        }
 
-        {/* =================================================
-            IMAGE
-        ================================================= */}
+        const currentContent =
+            quillRef.current
+                ?.root
+                ?.innerHTML || "";
 
-        <p>
-          Upload Thumbnail
-        </p>
 
-        <label htmlFor='image'>
+        if (
+            !currentContent ||
+            currentContent === "<p><br></p>"
+        ) {
 
-          <img
-            src={imagePreview}
-            alt='Blog thumbnail'
-            className='mt-2 h-16 rounded cursor-pointer object-cover'
-          />
+            toast.error(
+                "Please write or generate blog content first"
+            );
 
-          <input
-            onChange={(e) => {
+            return;
+        }
 
-              const file =
-                e.target.files?.[0]
 
-              if (file) {
-                setImage(file)
-              }
+        try {
 
-            }}
-            type='file'
-            id='image'
-            accept='image/*'
-            hidden
-            required={!image}
-          />
+            setLoading(true);
 
-        </label>
+            const {
+                data
+            } = await axios.post(
+                "/api/blog/improve",
 
-        {/* =================================================
-            TITLE
-        ================================================= */}
+                {
+                    title,
 
-        <p className='mt-4'>
-          Blog Title
-        </p>
+                    subTitle:
+                        subtitle,
 
-        <input
-          type='text'
-          placeholder='Type here'
-          required
-          className='w-full max-w-lg mt-2 p-2 border border-gray-300 outline-none rounded'
-          onChange={(e) =>
-            setTitle(
-              e.target.value
-            )
-          }
-          value={title}
-        />
+                    description:
+                        currentContent,
 
-        {/* =================================================
-            SUBTITLE
-        ================================================= */}
+                    category,
 
-        <p className='mt-4'>
-          Sub Title
-        </p>
+                    suggestions:
+                        "Make the blog more professional, engaging and easy to read."
+                },
 
-        <input
-          type='text'
-          placeholder='Type here'
-          className='w-full max-w-lg mt-2 p-2 border border-gray-300 outline-none rounded'
-          onChange={(e) =>
-            setSubTitle(
-              e.target.value
-            )
-          }
-          value={subtitle}
-        />
+                {
+                    headers: {
+                        Authorization:
+                            userToken
+                    }
+                }
+            );
 
-        {/* =================================================
-            CATEGORY
-        ================================================= */}
 
-        <p className='mt-4'>
-          Blog Category
-        </p>
+            if (data.success) {
 
-        <select
-          onChange={(e) =>
-            setCategory(
-              e.target.value
-            )
-          }
-          name='category'
-          value={category}
-          className='mt-2 px-3 py-2 border text-gray-500 border-gray-300 outline-none rounded'
-        >
+                const html =
+                    parse(
+                        data.content || ""
+                    );
 
-          {/* ALL OPTION */}
+                if (quillRef.current) {
 
-          <option value='All'>
-            All
-          </option>
+                    quillRef.current
+                        .clipboard
+                        .dangerouslyPasteHTML(
+                            html
+                        );
+                }
 
-          {/* OTHER CATEGORIES */}
+                toast.success(
+                    "Blog improved successfully"
+                );
 
-          {blogCategories.map(
-            (item, index) => (
+            } else {
 
-              <option
-                key={index}
-                value={item}
-              >
-                {item}
-              </option>
+                toast.error(
+                    data.message ||
+                    "Unable to improve blog"
+                );
+            }
 
-            )
-          )}
+        } catch (error) {
 
-        </select>
+            console.error(
+                "Improve Blog Error:",
+                error
+            );
 
-        {/* =================================================
-            BLOG DESCRIPTION
-        ================================================= */}
+            toast.error(
+                error.response?.data?.message ||
+                error.message ||
+                "Unable to improve blog"
+            );
 
-        <p className='mt-4'>
-          Blog Description
-        </p>
+        } finally {
 
-        <div className='max-w-lg pb-16 pt-2 relative'>
+            setLoading(false);
+        }
+    };
 
-          <div
-            ref={editorRef}
-            className='bg-white'
-          ></div>
 
-          {/* =================================================
-              LOADING OVERLAY
-          ================================================= */}
+    // =================================================
+    // ANALYZE BLOG
+    // =================================================
 
-          {loading && (
+    const analyzeBlog = async () => {
 
-            <div className='absolute inset-0 flex items-center justify-center bg-black/10 mt-2 z-10'>
+        if (analyzing) {
+            return;
+        }
 
-              <div className='w-8 h-8 rounded-full border-2 border-gray-400 border-t-white animate-spin'></div>
+        if (!title.trim()) {
 
-            </div>
+            toast.error(
+                "Please enter a blog title"
+            );
 
-          )}
+            return;
+        }
 
-          {/* =================================================
-              AI BUTTONS
-          ================================================= */}
 
-          <div className='flex flex-wrap gap-2 mt-3'>
+        const blogContent =
+            quillRef.current
+                ?.root
+                ?.innerHTML || "";
 
-            <button
-              disabled={loading}
-              type='button'
-              onClick={generateContent}
-              className='text-xs text-white bg-black/70 px-4 py-1.5 rounded hover:bg-black cursor-pointer disabled:opacity-60'
-            >
 
-              {loading
-                ? 'Generating...'
-                : 'Generate Blog with AI'}
+        if (
+            !blogContent ||
+            blogContent === "<p><br></p>"
+        ) {
 
-            </button>
+            toast.error(
+                "Please write or generate blog content first"
+            );
 
-            <button
-              disabled={loading}
-              type='button'
-              onClick={improveBlog}
-              className='text-xs text-white bg-blue-600 px-4 py-1.5 rounded hover:bg-blue-700 cursor-pointer disabled:opacity-60'
-            >
+            return;
+        }
 
-              {loading
-                ? 'Improving...'
-                : 'Improve Blog'}
 
-            </button>
+        try {
 
-            <button
-              disabled={
-                analyzing ||
-                loading
-              }
-              type='button'
-              onClick={analyzeBlog}
-              className='text-xs text-white bg-purple-600 px-4 py-1.5 rounded hover:bg-purple-700 cursor-pointer disabled:opacity-60'
-            >
+            setAnalyzing(true);
 
-              {analyzing
-                ? 'Analyzing...'
-                : '✨ Analyze My Blog'}
+            setAnalysis(null);
 
-            </button>
 
-          </div>
+            const {
+                data
+            } = await axios.post(
+                "/api/blog/analyze",
 
-          {/* =================================================
-              AI ANALYSIS
-          ================================================= */}
+                {
+                    title,
 
-          {analysis && (
+                    subTitle:
+                        subtitle,
 
-            <div className='mt-6 p-5 bg-gray-50 border border-gray-200 rounded-lg'>
+                    description:
+                        blogContent,
 
-              {/* HEADER */}
+                    category
+                },
 
-              <div className='flex items-center justify-between mb-5'>
+                {
+                    headers: {
+                        Authorization:
+                            userToken
+                    }
+                }
+            );
 
-                <div>
 
-                  <h2 className='text-lg font-semibold text-gray-800'>
-                    🤖 AI Blog Coach
-                  </h2>
+            if (data.success) {
 
-                  <p className='text-xs text-gray-500 mt-1'>
-                    AI-powered content analysis
-                  </p>
+                setAnalysis(
+                    data.analysis
+                );
+
+                toast.success(
+                    "Blog analysis completed"
+                );
+
+            } else {
+
+                toast.error(
+                    data.message ||
+                    "Unable to analyze blog"
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Analyze Blog Error:",
+                error
+            );
+
+            toast.error(
+                error.response?.data?.message ||
+                error.message ||
+                "Unable to analyze blog"
+            );
+
+        } finally {
+
+            setAnalyzing(false);
+        }
+    };
+
+
+    // =================================================
+    // SUBMIT BLOG
+    // =================================================
+
+    const onSubmitHandler = async (e) => {
+
+        e.preventDefault();
+
+
+        if (isAdding) {
+            return;
+        }
+
+
+        // ---------------------------------------------
+        // LOGIN CHECK
+        // ---------------------------------------------
+
+        if (!userToken || !user) {
+
+            toast.error(
+                "Please login first"
+            );
+
+            return;
+        }
+
+
+        // ---------------------------------------------
+        // IMAGE CHECK
+        // ---------------------------------------------
+
+        if (!image) {
+
+            toast.error(
+                "Please upload a thumbnail"
+            );
+
+            return;
+        }
+
+
+        // ---------------------------------------------
+        // TITLE CHECK
+        // ---------------------------------------------
+
+        if (!title.trim()) {
+
+            toast.error(
+                "Please enter a blog title"
+            );
+
+            return;
+        }
+
+
+        // ---------------------------------------------
+        // CATEGORY CHECK
+        // ---------------------------------------------
+
+        if (
+            !category ||
+            !category.trim()
+        ) {
+
+            toast.error(
+                "Please select a category"
+            );
+
+            return;
+        }
+
+
+        // ---------------------------------------------
+        // CONTENT CHECK
+        // ---------------------------------------------
+
+        if (isEditorEmpty()) {
+
+            toast.error(
+                "Please write your blog content first"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            setIsAdding(true);
+
+
+            // -----------------------------------------
+            // GET QUILL CONTENT
+            // -----------------------------------------
+
+            const blogContent =
+                quillRef.current
+                    .root
+                    .innerHTML;
+
+
+            // -----------------------------------------
+            // BLOG DATA
+            // -----------------------------------------
+
+            const blog = {
+
+                title:
+                    title.trim(),
+
+                subTitle:
+                    subtitle.trim(),
+
+                description:
+                    blogContent,
+
+                category:
+                    category.trim(),
+
+                // User blog is directly published
+                isPublished:
+                    true,
+
+                ...(seoData || {})
+            };
+
+
+            // -----------------------------------------
+            // FORM DATA
+            // -----------------------------------------
+
+            const formData =
+                new FormData();
+
+
+            formData.append(
+                "blog",
+                JSON.stringify(blog)
+            );
+
+
+            formData.append(
+                "image",
+                image
+            );
+
+
+            // -----------------------------------------
+            // IMPORTANT
+            // ROUTE MATCHES blogRoutes.js
+            //
+            // blogRoutes.js:
+            // POST /add
+            //
+            // server.js:
+            // /api/blog
+            //
+            // FINAL URL:
+            // /api/blog/add
+            // -----------------------------------------
+
+            const {
+                data
+            } = await axios.post(
+                "/api/blog/add",
+
+                formData,
+
+                {
+                    headers: {
+                        Authorization:
+                            userToken
+                    }
+                }
+            );
+
+
+            // -----------------------------------------
+            // RESPONSE
+            // -----------------------------------------
+
+            if (!data.success) {
+
+                toast.error(
+                    data.message ||
+                    "Unable to publish blog"
+                );
+
+                return;
+            }
+
+
+            // -----------------------------------------
+            // SUCCESS
+            // -----------------------------------------
+
+            toast.success(
+                data.message ||
+                "Blog published successfully"
+            );
+
+
+            // -----------------------------------------
+            // RESET FORM
+            // -----------------------------------------
+
+            setImage(null);
+
+            setTitle("");
+
+            setSubtitle("");
+
+            setCategory("All");
+
+            setAnalysis(null);
+
+            setSeoData(null);
+
+
+            // -----------------------------------------
+            // CLEAR QUILL
+            // -----------------------------------------
+
+            if (quillRef.current) {
+
+                quillRef.current.setContents(
+                    []
+                );
+            }
+
+
+            // -----------------------------------------
+            // CLEAR FILE INPUT
+            // -----------------------------------------
+
+            const fileInput =
+                document.getElementById(
+                    "user-blog-image"
+                );
+
+
+            if (fileInput) {
+
+                fileInput.value = "";
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                "Submit Blog Error:",
+                error
+            );
+
+            toast.error(
+                error.response?.data?.message ||
+                error.message ||
+                "Unable to publish blog"
+            );
+
+        } finally {
+
+            setIsAdding(false);
+        }
+    };
+
+
+    // =================================================
+    // IMAGE PREVIEW
+    // =================================================
+
+    const imagePreview =
+        image
+            ? URL.createObjectURL(image)
+            : assets.upload_area;
+
+
+    // =================================================
+    // LOGIN CHECK
+    // =================================================
+
+    if (!userToken || !user) {
+
+        return (
+
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+
+                <div className="text-center">
+
+                    <h2 className="text-2xl font-semibold text-gray-800">
+                        Please Login First
+                    </h2>
+
+                    <p className="text-gray-500 mt-2">
+                        You need to login before creating a blog.
+                    </p>
 
                 </div>
+
+            </div>
+        );
+    }
+
+
+    // =================================================
+    // UI
+    // =================================================
+
+    return (
+
+        <div className="min-h-screen bg-blue-50/50 py-10 px-4">
+
+            <form
+                onSubmit={onSubmitHandler}
+                className="bg-white w-full max-w-5xl mx-auto p-5 md:p-10 shadow rounded"
+            >
+
+                {/* HEADER */}
+
+                <div className="mb-8">
+
+                    <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">
+                        Create Your Blog
+                    </h1>
+
+                    <p className="text-sm text-gray-500 mt-2">
+                        Share your ideas with the QuickBlog community.
+                    </p>
+
+                </div>
+
+
+                {/* AUTHOR */}
+
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+
+                    <p className="text-sm text-gray-500">
+                        Author
+                    </p>
+
+                    <p className="font-semibold text-gray-800 mt-1">
+                        {user.username}
+                    </p>
+
+                </div>
+
+
+                {/* IMAGE */}
+
+                <p className="text-gray-700">
+                    Upload Thumbnail
+                </p>
+
+                <label htmlFor="user-blog-image">
+
+                    <img
+                        src={imagePreview}
+                        alt="Blog thumbnail"
+                        className="mt-2 h-28 w-48 rounded cursor-pointer object-cover border"
+                    />
+
+                    <input
+                        id="user-blog-image"
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        required={!image}
+                        onChange={(e) => {
+
+                            const file =
+                                e.target.files?.[0];
+
+                            if (file) {
+
+                                setImage(file);
+                            }
+                        }}
+                    />
+
+                </label>
+
+
+                {/* TITLE */}
+
+                <p className="mt-6 text-gray-700">
+                    Blog Title
+                </p>
+
+                <input
+                    type="text"
+                    placeholder="Enter your blog title"
+                    value={title}
+                    onChange={(e) =>
+                        setTitle(
+                            e.target.value
+                        )
+                    }
+                    className="w-full max-w-3xl mt-2 p-3 border border-gray-300 outline-none rounded"
+                    required
+                />
+
+
+                {/* SUBTITLE */}
+
+                <p className="mt-5 text-gray-700">
+                    Sub Title
+                </p>
+
+                <input
+                    type="text"
+                    placeholder="Enter a short subtitle"
+                    value={subtitle}
+                    onChange={(e) =>
+                        setSubtitle(
+                            e.target.value
+                        )
+                    }
+                    className="w-full max-w-3xl mt-2 p-3 border border-gray-300 outline-none rounded"
+                />
+
+
+                {/* CATEGORY */}
+
+                <p className="mt-5 text-gray-700">
+                    Blog Category
+                </p>
+
+                <select
+                    value={category}
+                    onChange={(e) =>
+                        setCategory(
+                            e.target.value
+                        )
+                    }
+                    className="mt-2 px-3 py-3 border border-gray-300 outline-none rounded"
+                >
+
+                    <option value="All">
+                        All
+                    </option>
+
+                    {blogCategories.map(
+                        (item, index) => (
+
+                            <option
+                                key={index}
+                                value={item}
+                            >
+                                {item}
+                            </option>
+                        )
+                    )}
+
+                </select>
+
+
+                {/* AI BUTTONS */}
+
+                <div className="flex flex-wrap gap-2 mt-7">
+
+                    <button
+                        type="button"
+                        onClick={generateContent}
+                        disabled={
+                            loading ||
+                            analyzing ||
+                            isAdding
+                        }
+                        className="px-4 py-2 rounded bg-gray-700 text-white text-sm hover:bg-gray-800 disabled:opacity-50"
+                    >
+
+                        {loading
+                            ? "Generating..."
+                            : "Generate Blog with AI"}
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        onClick={improveBlog}
+                        disabled={
+                            loading ||
+                            analyzing ||
+                            isAdding
+                        }
+                        className="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
+                    >
+
+                        {loading
+                            ? "Working..."
+                            : "Improve Blog"}
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        onClick={analyzeBlog}
+                        disabled={
+                            loading ||
+                            analyzing ||
+                            isAdding
+                        }
+                        className="px-4 py-2 rounded bg-purple-600 text-white text-sm hover:bg-purple-700 disabled:opacity-50"
+                    >
+
+                        {analyzing
+                            ? "Analyzing..."
+                            : "✨ Analyze My Blog"}
+
+                    </button>
+
+                </div>
+
+
+                {/* CONTENT */}
+
+                <p className="mt-6 text-gray-700">
+                    Blog Content
+                </p>
+
+                <div className="max-w-4xl mt-2 pb-5">
+
+                    <div
+                        ref={editorRef}
+                        className="bg-white"
+                    ></div>
+
+                </div>
+
+
+                {/* AI BLOG COACH */}
+
+                {analysis && (
+
+                    <div className="mt-6 border border-purple-200 rounded-xl bg-purple-50/40 p-5">
+
+                        <div className="flex items-center justify-between">
+
+                            <div>
+
+                                <h2 className="text-lg font-bold text-gray-800">
+                                    🤖 AI Blog Coach
+                                </h2>
+
+                                <p className="text-xs text-gray-500 mt-1">
+                                    AI quality analysis of your current blog.
+                                </p>
+
+                            </div>
+
+                            <span className="text-xs bg-white border border-purple-200 px-3 py-1 rounded-full text-purple-600">
+                                Gemini AI
+                            </span>
+
+                        </div>
+
+
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-5">
+
+                            {[
+                                [
+                                    "Quality",
+                                    analysis.qualityScore
+                                ],
+                                [
+                                    "SEO",
+                                    analysis.seoScore
+                                ],
+                                [
+                                    "Readability",
+                                    analysis.readabilityScore
+                                ],
+                                [
+                                    "Structure",
+                                    analysis.structureScore
+                                ],
+                                [
+                                    "Engagement",
+                                    analysis.engagementScore
+                                ]
+                            ].map(
+                                ([label, score]) => (
+
+                                    <div
+                                        key={label}
+                                        className="bg-white border rounded-lg p-3 text-center"
+                                    >
+
+                                        <p className="text-xs text-gray-500">
+                                            {label}
+                                        </p>
+
+                                        <p className="text-2xl font-bold text-purple-600 mt-1">
+                                            {score}
+                                        </p>
+
+                                        <div className="h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
+
+                                            <div
+                                                className="h-full bg-purple-500"
+                                                style={{
+                                                    width: `${score}%`
+                                                }}
+                                            ></div>
+
+                                        </div>
+
+                                    </div>
+                                )
+                            )}
+
+                        </div>
+
+
+                        {analysis.strengths?.length > 0 && (
+
+                            <div className="mt-5 bg-white border rounded-lg p-4">
+
+                                <h3 className="font-semibold text-sm text-green-700">
+                                    ✅ Strengths
+                                </h3>
+
+                                <ul className="mt-2 text-sm text-gray-700 list-disc pl-5">
+
+                                    {analysis.strengths.map(
+                                        (item, index) => (
+
+                                            <li key={index}>
+                                                {item}
+                                            </li>
+
+                                        )
+                                    )}
+
+                                </ul>
+
+                            </div>
+                        )}
+
+
+                        {analysis.weaknesses?.length > 0 && (
+
+                            <div className="mt-4 bg-white border rounded-lg p-4">
+
+                                <h3 className="font-semibold text-sm text-red-700">
+                                    ⚠️ Weaknesses
+                                </h3>
+
+                                <ul className="mt-2 text-sm text-gray-700 list-disc pl-5">
+
+                                    {analysis.weaknesses.map(
+                                        (item, index) => (
+
+                                            <li key={index}>
+                                                {item}
+                                            </li>
+
+                                        )
+                                    )}
+
+                                </ul>
+
+                            </div>
+                        )}
+
+
+                        {analysis.suggestions?.length > 0 && (
+
+                            <div className="mt-4 bg-white border rounded-lg p-4">
+
+                                <h3 className="font-semibold text-sm text-blue-700">
+                                    💡 Suggestions
+                                </h3>
+
+                                <ul className="mt-2 text-sm text-gray-700 list-disc pl-5">
+
+                                    {analysis.suggestions.map(
+                                        (item, index) => (
+
+                                            <li key={index}>
+                                                {item}
+                                            </li>
+
+                                        )
+                                    )}
+
+                                </ul>
+
+                            </div>
+                        )}
+
+                    </div>
+                )}
+
+
+                {/* AI CONTENT STUDIO */}
+
+                <AIStudio
+                    title={title}
+                    subtitle={subtitle}
+                    category={category}
+                    authToken={userToken}
+
+                    getContent={() =>
+                        quillRef.current
+                            ?.root
+                            ?.innerHTML || ""
+                    }
+
+                    onSEOGenerated={(data) => {
+
+                        setSeoData(data);
+                    }}
+
+                    onContentChanged={(newContent) => {
+
+                        if (quillRef.current) {
+
+                            quillRef.current
+                                .clipboard
+                                .dangerouslyPasteHTML(
+                                    newContent
+                                );
+                        }
+
+                    }}
+                />
+
+
+                {/* SUBMIT BUTTON */}
 
                 <button
-                  type='button'
-                  onClick={() =>
-                    setAnalysis(null)
-                  }
-                  className='text-gray-500 hover:text-black'
+                    type="submit"
+                    disabled={isAdding}
+                    className="mt-7 w-56 h-11 bg-[#F25022] text-white rounded cursor-pointer text-sm disabled:opacity-60"
                 >
-                  ✕
+
+                    {isAdding
+                        ? "Publishing..."
+                        : "Publish My Blog"}
+
                 </button>
 
-              </div>
-
-              {/* OVERALL SCORE */}
-
-              <div className='bg-white border rounded-lg p-4 mb-5'>
-
-                <p className='text-sm text-gray-500'>
-                  Overall Score
-                </p>
-
-                <p className='text-3xl font-bold text-gray-800'>
-
-                  {analysis.overallScore ??
-                    analysis.qualityScore ??
-                    0}
-
-                  /100
-
-                </p>
-
-              </div>
-
-              {/* SEO */}
-
-              <div className='space-y-3'>
-
-                <div>
-
-                  <div className='flex justify-between text-xs mb-1'>
-
-                    <span>
-                      SEO
-                    </span>
-
-                    <span>
-                      {analysis.seoScore ?? 0}/100
-                    </span>
-
-                  </div>
-
-                  <div className='w-full h-2 bg-gray-200 rounded'>
-
-                    <div
-                      className='h-2 bg-blue-500 rounded'
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.max(
-                            0,
-                            Number(
-                              analysis.seoScore || 0
-                            )
-                          )
-                        )}%`
-                      }}
-                    ></div>
-
-                  </div>
-
-                </div>
-
-                {/* READABILITY */}
-
-                <div>
-
-                  <div className='flex justify-between text-xs mb-1'>
-
-                    <span>
-                      Readability
-                    </span>
-
-                    <span>
-                      {analysis.readabilityScore ?? 0}/100
-                    </span>
-
-                  </div>
-
-                  <div className='w-full h-2 bg-gray-200 rounded'>
-
-                    <div
-                      className='h-2 bg-green-500 rounded'
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.max(
-                            0,
-                            Number(
-                              analysis.readabilityScore || 0
-                            )
-                          )
-                        )}%`
-                      }}
-                    ></div>
-
-                  </div>
-
-                </div>
-
-                {/* STRUCTURE */}
-
-                <div>
-
-                  <div className='flex justify-between text-xs mb-1'>
-
-                    <span>
-                      Structure
-                    </span>
-
-                    <span>
-                      {analysis.structureScore ?? 0}/100
-                    </span>
-
-                  </div>
-
-                  <div className='w-full h-2 bg-gray-200 rounded'>
-
-                    <div
-                      className='h-2 bg-purple-500 rounded'
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.max(
-                            0,
-                            Number(
-                              analysis.structureScore || 0
-                            )
-                          )
-                        )}%`
-                      }}
-                    ></div>
-
-                  </div>
-
-                </div>
-
-                {/* ENGAGEMENT */}
-
-                <div>
-
-                  <div className='flex justify-between text-xs mb-1'>
-
-                    <span>
-                      Engagement
-                    </span>
-
-                    <span>
-                      {analysis.engagementScore ?? 0}/100
-                    </span>
-
-                  </div>
-
-                  <div className='w-full h-2 bg-gray-200 rounded'>
-
-                    <div
-                      className='h-2 bg-orange-500 rounded'
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.max(
-                            0,
-                            Number(
-                              analysis.engagementScore || 0
-                            )
-                          )
-                        )}%`
-                      }}
-                    ></div>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              {/* SUMMARY */}
-
-              {analysis.summary && (
-
-                <div className='mt-5'>
-
-                  <h3 className='font-semibold text-sm'>
-                    📝 Summary
-                  </h3>
-
-                  <p className='text-xs text-gray-600 mt-2'>
-                    {analysis.summary}
-                  </p>
-
-                </div>
-
-              )}
-
-              {/* STRENGTHS */}
-
-              {analysis.strengths?.length > 0 && (
-
-                <div className='mt-5'>
-
-                  <h3 className='font-semibold text-sm text-green-700 mb-2'>
-                    ✓ Strengths
-                  </h3>
-
-                  <ul className='space-y-1'>
-
-                    {analysis.strengths.map(
-                      (item, index) => (
-
-                        <li
-                          key={index}
-                          className='text-xs text-gray-600'
-                        >
-                          ✓ {item}
-                        </li>
-
-                      )
-                    )}
-
-                  </ul>
-
-                </div>
-
-              )}
-
-              {/* WEAKNESSES */}
-
-              {analysis.weaknesses?.length > 0 && (
-
-                <div className='mt-5'>
-
-                  <h3 className='font-semibold text-sm text-orange-700 mb-2'>
-                    ⚠ Areas to Improve
-                  </h3>
-
-                  <ul className='space-y-1'>
-
-                    {analysis.weaknesses.map(
-                      (item, index) => (
-
-                        <li
-                          key={index}
-                          className='text-xs text-gray-600'
-                        >
-                          ⚠ {item}
-                        </li>
-
-                      )
-                    )}
-
-                  </ul>
-
-                </div>
-
-              )}
-
-              {/* SUGGESTIONS */}
-
-              {analysis.suggestions?.length > 0 && (
-
-                <div className='mt-5'>
-
-                  <h3 className='font-semibold text-sm text-indigo-700 mb-2'>
-                    💡 AI Suggestions
-                  </h3>
-
-                  <ul className='space-y-2'>
-
-                    {analysis.suggestions.map(
-                      (item, index) => (
-
-                        <li
-                          key={index}
-                          className='text-xs text-gray-700 bg-white border border-gray-200 rounded p-2'
-                        >
-                          {index + 1}. {item}
-                        </li>
-
-                      )
-                    )}
-
-                  </ul>
-
-                </div>
-
-              )}
-
-              {/* KEYWORDS */}
-
-              {analysis.keywords?.length > 0 && (
-
-                <div className='mt-5'>
-
-                  <h3 className='font-semibold text-sm text-gray-700'>
-                    🔑 Suggested Keywords
-                  </h3>
-
-                  <div className='flex flex-wrap gap-2 mt-2'>
-
-                    {analysis.keywords.map(
-                      (keyword, index) => (
-
-                        <span
-                          key={index}
-                          className='text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full'
-                        >
-                          {keyword}
-                        </span>
-
-                      )
-                    )}
-
-                  </div>
-
-                </div>
-
-              )}
-
-              {/* BETTER TITLE */}
-
-              {analysis.betterTitle && (
-
-                <div className='mt-5 p-3 bg-blue-50 rounded-lg'>
-
-                  <h3 className='font-semibold text-sm'>
-                    🎯 Suggested Better Title
-                  </h3>
-
-                  <p className='text-sm mt-1'>
-                    {analysis.betterTitle}
-                  </p>
-
-                </div>
-
-              )}
-
-            </div>
-
-          )}
+            </form>
 
         </div>
+    );
+};
 
-        {/* =================================================
-            AI CONTENT STUDIO
-        ================================================= */}
 
-        <AIStudio
-          title={title}
-          subtitle={subtitle}
-          category={category}
-          getContent={() =>
-            quillRef.current?.root?.innerHTML || ''
-          }
-          onSEOGenerated={setSeoData}
-          onContentChanged={(newContent) => {
-
-            if (
-              quillRef.current &&
-              newContent
-            ) {
-
-              setQuillContent(
-                newContent
-              )
-
-            }
-
-          }}
-        />
-
-        {/* =================================================
-            SAVE / PUBLISH
-        ================================================= */}
-
-        <div className='flex flex-wrap gap-3 mt-8'>
-
-          {/* =================================================
-              SAVE AS DRAFT
-          ================================================= */}
-
-          <button
-            disabled={isAdding}
-            type='button'
-            onClick={(e) => {
-
-              setIsPublished(false)
-
-              onSubmitHandler(
-                e,
-                false
-              )
-
-            }}
-            className='w-40 h-10 bg-gray-600 text-white rounded cursor-pointer text-sm hover:bg-gray-700 disabled:opacity-60'
-          >
-
-            {isAdding
-              ? 'Saving...'
-              : '📝 Save as Draft'}
-
-          </button>
-
-          {/* =================================================
-              PUBLISH BLOG
-          ================================================= */}
-
-          <button
-            disabled={isAdding}
-            type='button'
-            onClick={(e) => {
-
-              setIsPublished(true)
-
-              onSubmitHandler(
-                e,
-                true
-              )
-
-            }}
-            className='w-40 h-10 bg-[#F25022] text-white rounded cursor-pointer text-sm hover:bg-red-600 disabled:opacity-60'
-          >
-
-            {isAdding
-              ? 'Publishing...'
-              : '🚀 Publish Blog'}
-
-          </button>
-
-        </div>
-
-      </div>
-
-    </form>
-
-  )
-
-}
-
-export default Addblog
+export default AddBlog;
