@@ -46,10 +46,7 @@ export const registerUser = async (req, res) => {
         } = req.body;
 
 
-        // ---------------------------------------------
         // REQUIRED FIELDS
-        // ---------------------------------------------
-
         if (
             !username?.trim() ||
             !email?.trim() ||
@@ -66,10 +63,7 @@ export const registerUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // USERNAME VALIDATION
-        // ---------------------------------------------
-
+        // USERNAME
         const cleanUsername = username.trim();
 
         if (cleanUsername.length < 3) {
@@ -83,10 +77,7 @@ export const registerUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // EMAIL VALIDATION
-        // ---------------------------------------------
-
+        // EMAIL
         const cleanEmail =
             email.trim().toLowerCase();
 
@@ -104,10 +95,7 @@ export const registerUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // PHONE VALIDATION
-        // ---------------------------------------------
-
+        // PHONE
         const cleanPhone =
             phone.replace(/\s+/g, "").trim();
 
@@ -125,10 +113,7 @@ export const registerUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // PASSWORD VALIDATION
-        // ---------------------------------------------
-
+        // PASSWORD
         if (password.length < 6) {
 
             return res.json({
@@ -140,10 +125,7 @@ export const registerUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
         // CONFIRM PASSWORD
-        // ---------------------------------------------
-
         if (password !== confirmPassword) {
 
             return res.json({
@@ -155,10 +137,7 @@ export const registerUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // CHECK DATABASE
-        // ---------------------------------------------
-
+        // DATABASE CHECK
         if (mongoose.connection.readyState !== 1) {
 
             return res.json({
@@ -170,29 +149,20 @@ export const registerUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // CHECK EXISTING USER
-        // ---------------------------------------------
-
+        // EXISTING USER
         const existingUser =
             await User.findOne({
-
                 $or: [
-
                     {
                         username: cleanUsername
                     },
-
                     {
                         email: cleanEmail
                     },
-
                     {
                         phone: cleanPhone
                     }
-
                 ]
-
             });
 
 
@@ -240,44 +210,36 @@ export const registerUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
         // HASH PASSWORD
-        // ---------------------------------------------
-
         const hashedPassword =
             await bcrypt.hash(password, 10);
 
 
-        // ---------------------------------------------
         // CREATE USER
-        // ---------------------------------------------
-
         const user =
             await User.create({
 
-                username: cleanUsername,
+                username:
+                    cleanUsername,
 
-                email: cleanEmail,
+                email:
+                    cleanEmail,
 
-                phone: cleanPhone,
+                phone:
+                    cleanPhone,
 
-                password: hashedPassword
+                password:
+                    hashedPassword
 
             });
 
 
-        // ---------------------------------------------
-        // CREATE TOKEN
-        // ---------------------------------------------
-
+        // TOKEN
         const token =
             createUserToken(user._id);
 
 
-        // ---------------------------------------------
         // RESPONSE
-        // ---------------------------------------------
-
         res.json({
 
             success: true,
@@ -289,7 +251,8 @@ export const registerUser = async (req, res) => {
 
             user: {
 
-                id: user._id,
+                id:
+                    user._id,
 
                 username:
                     user.username,
@@ -340,10 +303,6 @@ export const loginUser = async (req, res) => {
         } = req.body;
 
 
-        // ---------------------------------------------
-        // REQUIRED FIELDS
-        // ---------------------------------------------
-
         if (
             !identifier?.trim() ||
             !password
@@ -365,10 +324,7 @@ export const loginUser = async (req, res) => {
             identifier.trim();
 
 
-        // ---------------------------------------------
         // FIND USER
-        // ---------------------------------------------
-
         const user =
             await User.findOne({
 
@@ -411,10 +367,7 @@ export const loginUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // CHECK PASSWORD
-        // ---------------------------------------------
-
+        // PASSWORD
         const passwordMatch =
             await bcrypt.compare(
                 password,
@@ -436,18 +389,12 @@ export const loginUser = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // CREATE TOKEN
-        // ---------------------------------------------
-
+        // TOKEN
         const token =
             createUserToken(user._id);
 
 
-        // ---------------------------------------------
         // RESPONSE
-        // ---------------------------------------------
-
         res.json({
 
             success: true,
@@ -459,7 +406,8 @@ export const loginUser = async (req, res) => {
 
             user: {
 
-                id: user._id,
+                id:
+                    user._id,
 
                 username:
                     user.username,
@@ -497,12 +445,26 @@ export const loginUser = async (req, res) => {
 
 
 // =====================================================
-// GET LOGGED-IN USER
+// GET USER PROFILE
 // =====================================================
 
 export const getUserProfile = async (req, res) => {
 
     try {
+
+        if (!req.userId) {
+
+            return res.json({
+
+                success: false,
+
+                message:
+                    "User authentication required"
+
+            });
+
+        }
+
 
         const user =
             await User.findById(
@@ -564,10 +526,9 @@ export const addUserBlog = async (req, res) => {
 
     try {
 
-
-        // ---------------------------------------------
+        // =================================================
         // CHECK LOGIN
-        // ---------------------------------------------
+        // =================================================
 
         if (!req.userId) {
 
@@ -583,9 +544,9 @@ export const addUserBlog = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // GET LOGGED-IN USER
-        // ---------------------------------------------
+        // =================================================
+        // GET USER
+        // =================================================
 
         const user =
             await User.findById(
@@ -607,33 +568,111 @@ export const addUserBlog = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // GET BLOG DATA
-        // ---------------------------------------------
+        // =================================================
+        // CHECK BLOG DATA
+        // =================================================
 
-        const blogData =
-            JSON.parse(
-                req.body.blog || "{}"
+        let blogData = {};
+
+        try {
+
+            blogData =
+                JSON.parse(
+                    req.body.blog || "{}"
+                );
+
+        } catch (parseError) {
+
+            console.error(
+                "Blog JSON Parse Error:",
+                parseError
             );
 
+            return res.json({
 
-        const {
-            title,
-            subTitle,
-            description,
-            category,
-            metaTitle,
-            metaDescription,
-            slug,
-            focusKeyword,
-            seoKeywords,
-            seoTips
-        } = blogData;
+                success: false,
+
+                message:
+                    "Invalid blog data"
+
+            });
+
+        }
 
 
-        // ---------------------------------------------
+        // =================================================
+        // GET BLOG FIELDS
+        // =================================================
+
+        const title =
+            blogData.title?.trim() || "";
+
+
+        const subTitle =
+            blogData.subTitle?.trim() || "";
+
+
+        /*
+         * IMPORTANT FIX
+         *
+         * Frontend sends:
+         *
+         * content
+         *
+         * Older code expected:
+         *
+         * description
+         *
+         * So we support BOTH.
+         */
+
+        const blogContent =
+            (
+                blogData.content ||
+                blogData.description ||
+                ""
+            ).trim();
+
+
+        const category =
+            blogData.category?.trim() || "";
+
+
+        const metaTitle =
+            blogData.metaTitle?.trim() || "";
+
+
+        const metaDescription =
+            blogData.metaDescription?.trim() || "";
+
+
+        const slug =
+            blogData.slug?.trim() || "";
+
+
+        const focusKeyword =
+            blogData.focusKeyword?.trim() || "";
+
+
+        const seoKeywords =
+            Array.isArray(
+                blogData.seoKeywords
+            )
+                ? blogData.seoKeywords
+                : [];
+
+
+        const seoTips =
+            Array.isArray(
+                blogData.seoTips
+            )
+                ? blogData.seoTips
+                : [];
+
+
+        // =================================================
         // GET IMAGE
-        // ---------------------------------------------
+        // =================================================
 
         const imageFile =
             req.file;
@@ -647,15 +686,73 @@ export const addUserBlog = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
+        // =================================================
         // VALIDATION
-        // ---------------------------------------------
+        // =================================================
+
+        if (!title) {
+
+            return res.json({
+
+                success: false,
+
+                message:
+                    "Title is required"
+
+            });
+
+        }
+
+
+        if (!blogContent) {
+
+            return res.json({
+
+                success: false,
+
+                message:
+                    "Blog content is required"
+
+            });
+
+        }
+
+
+        if (!category || category === "All") {
+
+            return res.json({
+
+                success: false,
+
+                message:
+                    "Please select a valid blog category"
+
+            });
+
+        }
+
+
+        if (!imageFile) {
+
+            return res.json({
+
+                success: false,
+
+                message:
+                    "Please upload a thumbnail"
+
+            });
+
+        }
+
+
+        // =================================================
+        // CHECK IMAGE FILE
+        // =================================================
 
         if (
-            !title?.trim() ||
-            !description?.trim() ||
-            !category?.trim() ||
-            !imageFile
+            !imageFile.path ||
+            !fs.existsSync(imageFile.path)
         ) {
 
             return res.json({
@@ -663,16 +760,16 @@ export const addUserBlog = async (req, res) => {
                 success: false,
 
                 message:
-                    "Title, content, category and thumbnail are required"
+                    "Thumbnail file could not be processed"
 
             });
 
         }
 
 
-        // ---------------------------------------------
-        // READ IMAGE FILE
-        // ---------------------------------------------
+        // =================================================
+        // READ IMAGE
+        // =================================================
 
         const fileBuffer =
             fs.readFileSync(
@@ -680,14 +777,15 @@ export const addUserBlog = async (req, res) => {
             );
 
 
-        // ---------------------------------------------
+        // =================================================
         // UPLOAD IMAGE TO IMAGEKIT
-        // ---------------------------------------------
+        // =================================================
 
         const response =
             await imagekit.upload({
 
-                file: fileBuffer,
+                file:
+                    fileBuffer,
 
                 fileName:
                     imageFile.originalname,
@@ -698,9 +796,9 @@ export const addUserBlog = async (req, res) => {
             });
 
 
-        // ---------------------------------------------
+        // =================================================
         // OPTIMIZE IMAGE
-        // ---------------------------------------------
+        // =================================================
 
         const optimizedImageUrl =
             imagekit.url({
@@ -730,44 +828,40 @@ export const addUserBlog = async (req, res) => {
             });
 
 
-        // ---------------------------------------------
-        // CREATE USER BLOG
-        // ---------------------------------------------
+        // =================================================
+        // CREATE BLOG
+        // =================================================
 
         const blog =
             await Blog.create({
 
                 title:
-                    title.trim(),
+                    title,
 
                 subTitle:
-                    subTitle?.trim() || "",
+                    subTitle,
 
                 description:
-                    description.trim(),
+                    blogContent,
 
                 category:
-                    category.trim(),
+                    category,
 
                 image:
                     optimizedImageUrl,
 
 
-                // =====================================
-                // IMPORTANT:
-                // USER BLOG WILL NOT BE PUBLISHED
-                // DIRECTLY.
-                //
-                // ADMIN MUST APPROVE IT FIRST.
-                // =====================================
+                // =================================================
+                // USER BLOG STARTS AS PENDING
+                // =================================================
 
                 isPublished:
                     false,
 
 
-                // =====================================
+                // =================================================
                 // USER INFORMATION
-                // =====================================
+                // =================================================
 
                 author:
                     user._id,
@@ -779,40 +873,36 @@ export const addUserBlog = async (req, res) => {
                     user.email,
 
 
-                // =====================================
+                // =================================================
                 // SEO INFORMATION
-                // =====================================
+                // =================================================
 
                 metaTitle:
-                    metaTitle?.trim() || "",
+                    metaTitle,
 
                 metaDescription:
-                    metaDescription?.trim() || "",
+                    metaDescription,
 
                 slug:
-                    slug?.trim() || "",
+                    slug,
 
                 focusKeyword:
-                    focusKeyword?.trim() || "",
+                    focusKeyword,
 
                 seoKeywords:
-                    Array.isArray(seoKeywords)
-                        ? seoKeywords
-                        : [],
+                    seoKeywords,
 
                 seoTips:
-                    Array.isArray(seoTips)
-                        ? seoTips
-                        : []
+                    seoTips
 
             });
 
 
-        // ---------------------------------------------
-        // SUCCESS RESPONSE
-        // ---------------------------------------------
+        // =================================================
+        // SUCCESS
+        // =================================================
 
-        res.json({
+        return res.json({
 
             success: true,
 
@@ -831,27 +921,27 @@ export const addUserBlog = async (req, res) => {
             error
         );
 
-        res.json({
+
+        return res.json({
 
             success: false,
 
             message:
-                error.message
+                error.message ||
+                "Unable to submit blog"
 
         });
 
+
     } finally {
 
-
-        // ---------------------------------------------
+        // =================================================
         // DELETE TEMPORARY IMAGE
-        // ---------------------------------------------
+        // =================================================
 
         if (
             imageFilePath &&
-            fs.existsSync(
-                imageFilePath
-            )
+            fs.existsSync(imageFilePath)
         ) {
 
             try {
@@ -860,9 +950,12 @@ export const addUserBlog = async (req, res) => {
                     imageFilePath
                 );
 
-            } catch (_) {
+            } catch (deleteError) {
 
-                // Ignore file deletion error
+                console.error(
+                    "Temporary image delete error:",
+                    deleteError
+                );
 
             }
 
@@ -874,17 +967,16 @@ export const addUserBlog = async (req, res) => {
 
 
 // =====================================================
-// GET MY BLOGS - LOGGED IN USER
+// GET MY BLOGS
 // =====================================================
 
 export const getMyBlogs = async (req, res) => {
 
     try {
 
-
-        // ---------------------------------------------
+        // =================================================
         // CHECK LOGIN
-        // ---------------------------------------------
+        // =================================================
 
         if (!req.userId) {
 
@@ -900,9 +992,9 @@ export const getMyBlogs = async (req, res) => {
         }
 
 
-        // ---------------------------------------------
-        // GET USER BLOGS
-        // ---------------------------------------------
+        // =================================================
+        // GET LOGGED-IN USER BLOGS
+        // =================================================
 
         const blogs =
             await Blog.find({
@@ -919,11 +1011,11 @@ export const getMyBlogs = async (req, res) => {
                 });
 
 
-        // ---------------------------------------------
+        // =================================================
         // RESPONSE
-        // ---------------------------------------------
+        // =================================================
 
-        res.json({
+        return res.json({
 
             success: true,
 
@@ -939,12 +1031,14 @@ export const getMyBlogs = async (req, res) => {
             error
         );
 
-        res.json({
+
+        return res.json({
 
             success: false,
 
             message:
-                error.message
+                error.message ||
+                "Unable to get your blogs"
 
         });
 
