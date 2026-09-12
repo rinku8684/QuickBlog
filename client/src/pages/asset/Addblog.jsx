@@ -1,25 +1,14 @@
-import React, {
-    useEffect,
-    useRef,
-    useState
-} from "react";
+import React, { useEffect, useRef, useState } from "react";
 
-import {
-    assets,
-    blogCategories
-} from "../assets/assets";
+import { assets, blogCategories } from "../assets/assets";
 
 import Quill from "quill";
 
-import {
-    useAppContext
-} from "../context/AppContext";
+import { useAppContext } from "../context/AppContext";
 
 import toast from "react-hot-toast";
 
-import {
-    parse
-} from "marked";
+import { parse } from "marked";
 
 import AIStudio from "../components/admin/AIStudio";
 
@@ -33,18 +22,17 @@ const AddBlog = () => {
     } = useAppContext();
 
 
-    // =================================================
+    // ============================================
     // REFS
-    // =================================================
+    // ============================================
 
     const editorRef = useRef(null);
-
     const quillRef = useRef(null);
 
 
-    // =================================================
+    // ============================================
     // BLOG STATES
-    // =================================================
+    // ============================================
 
     const [image, setImage] = useState(null);
 
@@ -52,38 +40,32 @@ const AddBlog = () => {
 
     const [subtitle, setSubtitle] = useState("");
 
-    const [category, setCategory] =
-        useState("All");
+    const [category, setCategory] = useState("Startup");
 
 
-    // =================================================
+    // ============================================
     // LOADING STATES
-    // =================================================
+    // ============================================
 
-    const [isAdding, setIsAdding] =
-        useState(false);
+    const [isAdding, setIsAdding] = useState(false);
 
-    const [loading, setLoading] =
-        useState(false);
+    const [loading, setLoading] = useState(false);
 
-    const [analyzing, setAnalyzing] =
-        useState(false);
+    const [analyzing, setAnalyzing] = useState(false);
 
 
-    // =================================================
+    // ============================================
     // AI STATES
-    // =================================================
+    // ============================================
 
-    const [analysis, setAnalysis] =
-        useState(null);
+    const [analysis, setAnalysis] = useState(null);
 
-    const [seoData, setSeoData] =
-        useState(null);
+    const [seoData, setSeoData] = useState(null);
 
 
-    // =================================================
+    // ============================================
     // INITIALIZE QUILL
-    // =================================================
+    // ============================================
 
     useEffect(() => {
 
@@ -92,81 +74,82 @@ const AddBlog = () => {
             editorRef.current
         ) {
 
-            quillRef.current =
-                new Quill(
-                    editorRef.current,
-                    {
-                        theme: "snow",
+            quillRef.current = new Quill(
+                editorRef.current,
+                {
+                    theme: "snow",
 
-                        placeholder:
-                            "Write your blog content here...",
+                    placeholder:
+                        "Write your blog content here...",
 
-                        modules: {
+                    modules: {
 
-                            toolbar: [
+                        toolbar: [
 
-                                [
-                                    {
-                                        header: [
-                                            1,
-                                            2,
-                                            3,
-                                            false
-                                        ]
-                                    }
-                                ],
+                            [
+                                {
+                                    header: [
+                                        1,
+                                        2,
+                                        3,
+                                        false
+                                    ]
+                                }
+                            ],
 
-                                [
-                                    "bold",
-                                    "italic",
-                                    "underline",
-                                    "strike"
-                                ],
+                            [
+                                "bold",
+                                "italic",
+                                "underline",
+                                "strike"
+                            ],
 
-                                [
-                                    {
-                                        list: "ordered"
-                                    },
-                                    {
-                                        list: "bullet"
-                                    }
-                                ],
+                            [
+                                {
+                                    list: "ordered"
+                                },
+                                {
+                                    list: "bullet"
+                                }
+                            ],
 
-                                [
-                                    "link",
-                                    "blockquote"
-                                ],
+                            [
+                                "link",
+                                "blockquote"
+                            ],
 
-                                [
-                                    {
-                                        align: []
-                                    }
-                                ],
+                            [
+                                {
+                                    align: []
+                                }
+                            ],
 
-                                [
-                                    {
-                                        color: []
-                                    },
-                                    {
-                                        background: []
-                                    }
-                                ],
+                            [
+                                {
+                                    color: []
+                                },
+                                {
+                                    background: []
+                                }
+                            ],
 
-                                [
-                                    "clean"
-                                ]
+                            [
+                                "clean"
                             ]
-                        }
+
+                        ]
                     }
-                );
+                }
+            );
+
         }
 
     }, []);
 
 
-    // =================================================
-    // CHECK EDITOR EMPTY
-    // =================================================
+    // ============================================
+    // CHECK EMPTY EDITOR
+    // ============================================
 
     const isEditorEmpty = () => {
 
@@ -183,9 +166,9 @@ const AddBlog = () => {
     };
 
 
-    // =================================================
+    // ============================================
     // GENERATE BLOG WITH AI
-    // =================================================
+    // ============================================
 
     const generateContent = async () => {
 
@@ -202,42 +185,40 @@ const AddBlog = () => {
             return;
         }
 
+
         try {
 
             setLoading(true);
 
-            const {
-                data
-            } = await axios.post(
-                "/api/blog/generate",
 
-                {
-                    prompt: title
-                },
+            const { data } =
+                await axios.post(
+                    "/api/blog/generate",
 
-                {
-                    headers: {
-                        Authorization:
-                            userToken
+                    {
+                        prompt: title
+                    },
+
+                    {
+                        headers: {
+                            Authorization: userToken
+                        }
                     }
-                }
-            );
+                );
 
 
             if (data.success) {
 
                 const html =
-                    parse(
-                        data.content || ""
-                    );
+                    parse(data.content || "");
 
                 if (quillRef.current) {
 
-                    quillRef.current
-                        .clipboard
+                    quillRef.current.clipboard
                         .dangerouslyPasteHTML(
                             html
                         );
+
                 }
 
                 toast.success(
@@ -250,6 +231,7 @@ const AddBlog = () => {
                     data.message ||
                     "Unable to generate blog"
                 );
+
             }
 
         } catch (error) {
@@ -268,13 +250,15 @@ const AddBlog = () => {
         } finally {
 
             setLoading(false);
+
         }
+
     };
 
 
-    // =================================================
-    // IMPROVE BLOG
-    // =================================================
+    // ============================================
+    // IMPROVE BLOG WITH AI
+    // ============================================
 
     const improveBlog = async () => {
 
@@ -282,10 +266,9 @@ const AddBlog = () => {
             return;
         }
 
+
         const currentContent =
-            quillRef.current
-                ?.root
-                ?.innerHTML || "";
+            quillRef.current?.root?.innerHTML || "";
 
 
         if (
@@ -305,49 +288,46 @@ const AddBlog = () => {
 
             setLoading(true);
 
-            const {
-                data
-            } = await axios.post(
-                "/api/blog/improve",
 
-                {
-                    title,
+            const { data } =
+                await axios.post(
+                    "/api/blog/improve",
 
-                    subTitle:
-                        subtitle,
+                    {
+                        title,
 
-                    description:
-                        currentContent,
+                        subTitle:
+                            subtitle,
 
-                    category,
+                        description:
+                            currentContent,
 
-                    suggestions:
-                        "Make the blog more professional, engaging and easy to read."
-                },
+                        category,
 
-                {
-                    headers: {
-                        Authorization:
-                            userToken
+                        suggestions:
+                            "Make the blog more professional, engaging and easy to read."
+                    },
+
+                    {
+                        headers: {
+                            Authorization: userToken
+                        }
                     }
-                }
-            );
+                );
 
 
             if (data.success) {
 
                 const html =
-                    parse(
-                        data.content || ""
-                    );
+                    parse(data.content || "");
 
                 if (quillRef.current) {
 
-                    quillRef.current
-                        .clipboard
+                    quillRef.current.clipboard
                         .dangerouslyPasteHTML(
                             html
                         );
+
                 }
 
                 toast.success(
@@ -360,6 +340,7 @@ const AddBlog = () => {
                     data.message ||
                     "Unable to improve blog"
                 );
+
             }
 
         } catch (error) {
@@ -378,19 +359,22 @@ const AddBlog = () => {
         } finally {
 
             setLoading(false);
+
         }
+
     };
 
 
-    // =================================================
-    // ANALYZE BLOG
-    // =================================================
+    // ============================================
+    // ANALYZE BLOG WITH AI
+    // ============================================
 
     const analyzeBlog = async () => {
 
         if (analyzing) {
             return;
         }
+
 
         if (!title.trim()) {
 
@@ -403,9 +387,7 @@ const AddBlog = () => {
 
 
         const blogContent =
-            quillRef.current
-                ?.root
-                ?.innerHTML || "";
+            quillRef.current?.root?.innerHTML || "";
 
 
         if (
@@ -428,30 +410,28 @@ const AddBlog = () => {
             setAnalysis(null);
 
 
-            const {
-                data
-            } = await axios.post(
-                "/api/blog/analyze",
+            const { data } =
+                await axios.post(
+                    "/api/blog/analyze",
 
-                {
-                    title,
+                    {
+                        title,
 
-                    subTitle:
-                        subtitle,
+                        subTitle:
+                            subtitle,
 
-                    description:
-                        blogContent,
+                        description:
+                            blogContent,
 
-                    category
-                },
+                        category
+                    },
 
-                {
-                    headers: {
-                        Authorization:
-                            userToken
+                    {
+                        headers: {
+                            Authorization: userToken
+                        }
                     }
-                }
-            );
+                );
 
 
             if (data.success) {
@@ -470,6 +450,7 @@ const AddBlog = () => {
                     data.message ||
                     "Unable to analyze blog"
                 );
+
             }
 
         } catch (error) {
@@ -488,13 +469,15 @@ const AddBlog = () => {
         } finally {
 
             setAnalyzing(false);
+
         }
+
     };
 
 
-    // =================================================
-    // SUBMIT BLOG
-    // =================================================
+    // ============================================
+    // SUBMIT USER BLOG
+    // ============================================
 
     const onSubmitHandler = async (e) => {
 
@@ -506,23 +489,9 @@ const AddBlog = () => {
         }
 
 
-        // ---------------------------------------------
-        // LOGIN CHECK
-        // ---------------------------------------------
-
-        if (!userToken || !user) {
-
-            toast.error(
-                "Please login first"
-            );
-
-            return;
-        }
-
-
-        // ---------------------------------------------
-        // IMAGE CHECK
-        // ---------------------------------------------
+        // ----------------------------------------
+        // CHECK THUMBNAIL
+        // ----------------------------------------
 
         if (!image) {
 
@@ -534,9 +503,9 @@ const AddBlog = () => {
         }
 
 
-        // ---------------------------------------------
-        // TITLE CHECK
-        // ---------------------------------------------
+        // ----------------------------------------
+        // CHECK TITLE
+        // ----------------------------------------
 
         if (!title.trim()) {
 
@@ -548,26 +517,9 @@ const AddBlog = () => {
         }
 
 
-        // ---------------------------------------------
-        // CATEGORY CHECK
-        // ---------------------------------------------
-
-        if (
-            !category ||
-            !category.trim()
-        ) {
-
-            toast.error(
-                "Please select a category"
-            );
-
-            return;
-        }
-
-
-        // ---------------------------------------------
-        // CONTENT CHECK
-        // ---------------------------------------------
+        // ----------------------------------------
+        // CHECK CONTENT
+        // ----------------------------------------
 
         if (isEditorEmpty()) {
 
@@ -579,24 +531,48 @@ const AddBlog = () => {
         }
 
 
+        // ----------------------------------------
+        // CHECK CATEGORY
+        // ----------------------------------------
+
+        if (
+            !category ||
+            category === "All"
+        ) {
+
+            toast.error(
+                "Please select a blog category"
+            );
+
+            return;
+        }
+
+
         try {
 
             setIsAdding(true);
 
 
-            // -----------------------------------------
+            // ----------------------------------------
             // GET QUILL CONTENT
-            // -----------------------------------------
+            // ----------------------------------------
 
             const blogContent =
                 quillRef.current
-                    .root
-                    .innerHTML;
+                    ?.root
+                    ?.innerHTML || "";
 
 
-            // -----------------------------------------
-            // BLOG DATA
-            // -----------------------------------------
+            // ----------------------------------------
+            // CREATE BLOG DATA
+            //
+            // IMPORTANT:
+            // Backend expects:
+            // title
+            // content
+            // category
+            // thumbnail
+            // ----------------------------------------
 
             const blog = {
 
@@ -606,33 +582,44 @@ const AddBlog = () => {
                 subTitle:
                     subtitle.trim(),
 
-                description:
+                content:
                     blogContent,
 
                 category:
-                    category.trim(),
 
-                // User blog is directly published
+                    category,
+
                 isPublished:
-                    true,
+                    false,
 
                 ...(seoData || {})
+
             };
 
 
-            // -----------------------------------------
+            // ----------------------------------------
             // FORM DATA
-            // -----------------------------------------
+            // ----------------------------------------
 
             const formData =
                 new FormData();
 
 
+            // Blog JSON
             formData.append(
                 "blog",
                 JSON.stringify(blog)
             );
 
+
+            // IMPORTANT:
+            // Backend user route uses
+            // upload.single("image")
+            //
+            // So keep "image" here.
+            // Backend should convert req.file
+            // into thumbnail.
+            // ----------------------------------------
 
             formData.append(
                 "image",
@@ -640,64 +627,53 @@ const AddBlog = () => {
             );
 
 
-            // -----------------------------------------
-            // IMPORTANT
-            // ROUTE MATCHES blogRoutes.js
-            //
-            // blogRoutes.js:
-            // POST /add
-            //
-            // server.js:
-            // /api/blog
-            //
-            // FINAL URL:
-            // /api/blog/add
-            // -----------------------------------------
+            // ----------------------------------------
+            // SEND TO BACKEND
+            // ----------------------------------------
 
-            const {
-                data
-            } = await axios.post(
-                "/api/blog/add",
+            const { data } =
+                await axios.post(
+                    "/api/user/blog/add",
 
-                formData,
+                    formData,
 
-                {
-                    headers: {
-                        Authorization:
-                            userToken
+                    {
+                        headers: {
+                            Authorization:
+                                userToken
+                        }
                     }
-                }
-            );
+                );
 
 
-            // -----------------------------------------
-            // RESPONSE
-            // -----------------------------------------
+            // ----------------------------------------
+            // CHECK RESPONSE
+            // ----------------------------------------
 
             if (!data.success) {
 
                 toast.error(
                     data.message ||
-                    "Unable to publish blog"
+                    "Unable to submit blog"
                 );
 
                 return;
             }
 
 
-            // -----------------------------------------
+            // ----------------------------------------
             // SUCCESS
-            // -----------------------------------------
+            // ----------------------------------------
 
             toast.success(
                 data.message ||
-                "Blog published successfully"
+                "Blog submitted successfully. Waiting for admin approval."
             );
 
 
-            // -----------------------------------------
+            // ----------------------------------------
             // RESET FORM
-            // -----------------------------------------
+            // ----------------------------------------
 
             setImage(null);
 
@@ -705,28 +681,27 @@ const AddBlog = () => {
 
             setSubtitle("");
 
-            setCategory("All");
+            setCategory("Startup");
 
             setAnalysis(null);
 
             setSeoData(null);
 
 
-            // -----------------------------------------
+            // ----------------------------------------
             // CLEAR QUILL
-            // -----------------------------------------
+            // ----------------------------------------
 
             if (quillRef.current) {
 
-                quillRef.current.setContents(
-                    []
-                );
+                quillRef.current.setContents([]);
+
             }
 
 
-            // -----------------------------------------
+            // ----------------------------------------
             // CLEAR FILE INPUT
-            // -----------------------------------------
+            // ----------------------------------------
 
             const fileInput =
                 document.getElementById(
@@ -737,32 +712,34 @@ const AddBlog = () => {
             if (fileInput) {
 
                 fileInput.value = "";
-            }
 
+            }
 
         } catch (error) {
 
             console.error(
-                "Submit Blog Error:",
+                "User Submit Blog Error:",
                 error
             );
 
             toast.error(
                 error.response?.data?.message ||
                 error.message ||
-                "Unable to publish blog"
+                "Unable to submit blog"
             );
 
         } finally {
 
             setIsAdding(false);
+
         }
+
     };
 
 
-    // =================================================
+    // ============================================
     // IMAGE PREVIEW
-    // =================================================
+    // ============================================
 
     const imagePreview =
         image
@@ -770,9 +747,9 @@ const AddBlog = () => {
             : assets.upload_area;
 
 
-    // =================================================
+    // ============================================
     // LOGIN CHECK
-    // =================================================
+    // ============================================
 
     if (!userToken || !user) {
 
@@ -793,13 +770,15 @@ const AddBlog = () => {
                 </div>
 
             </div>
+
         );
+
     }
 
 
-    // =================================================
+    // ============================================
     // UI
-    // =================================================
+    // ============================================
 
     return (
 
@@ -840,11 +819,12 @@ const AddBlog = () => {
                 </div>
 
 
-                {/* IMAGE */}
+                {/* THUMBNAIL */}
 
                 <p className="text-gray-700">
                     Upload Thumbnail
                 </p>
+
 
                 <label htmlFor="user-blog-image">
 
@@ -854,12 +834,14 @@ const AddBlog = () => {
                         className="mt-2 h-28 w-48 rounded cursor-pointer object-cover border"
                     />
 
+
                     <input
                         id="user-blog-image"
                         type="file"
                         accept="image/*"
                         hidden
                         required={!image}
+
                         onChange={(e) => {
 
                             const file =
@@ -868,7 +850,9 @@ const AddBlog = () => {
                             if (file) {
 
                                 setImage(file);
+
                             }
+
                         }}
                     />
 
@@ -881,16 +865,20 @@ const AddBlog = () => {
                     Blog Title
                 </p>
 
+
                 <input
                     type="text"
                     placeholder="Enter your blog title"
                     value={title}
+
                     onChange={(e) =>
                         setTitle(
                             e.target.value
                         )
                     }
+
                     className="w-full max-w-3xl mt-2 p-3 border border-gray-300 outline-none rounded"
+
                     required
                 />
 
@@ -901,15 +889,18 @@ const AddBlog = () => {
                     Sub Title
                 </p>
 
+
                 <input
                     type="text"
                     placeholder="Enter a short subtitle"
                     value={subtitle}
+
                     onChange={(e) =>
                         setSubtitle(
                             e.target.value
                         )
                     }
+
                     className="w-full max-w-3xl mt-2 p-3 border border-gray-300 outline-none rounded"
                 />
 
@@ -920,19 +911,18 @@ const AddBlog = () => {
                     Blog Category
                 </p>
 
+
                 <select
                     value={category}
+
                     onChange={(e) =>
                         setCategory(
                             e.target.value
                         )
                     }
+
                     className="mt-2 px-3 py-3 border border-gray-300 outline-none rounded"
                 >
-
-                    <option value="All">
-                        All
-                    </option>
 
                     {blogCategories.map(
                         (item, index) => (
@@ -943,6 +933,7 @@ const AddBlog = () => {
                             >
                                 {item}
                             </option>
+
                         )
                     )}
 
@@ -956,11 +947,13 @@ const AddBlog = () => {
                     <button
                         type="button"
                         onClick={generateContent}
+
                         disabled={
                             loading ||
                             analyzing ||
                             isAdding
                         }
+
                         className="px-4 py-2 rounded bg-gray-700 text-white text-sm hover:bg-gray-800 disabled:opacity-50"
                     >
 
@@ -974,11 +967,13 @@ const AddBlog = () => {
                     <button
                         type="button"
                         onClick={improveBlog}
+
                         disabled={
                             loading ||
                             analyzing ||
                             isAdding
                         }
+
                         className="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
                     >
 
@@ -992,11 +987,13 @@ const AddBlog = () => {
                     <button
                         type="button"
                         onClick={analyzeBlog}
+
                         disabled={
                             loading ||
                             analyzing ||
                             isAdding
                         }
+
                         className="px-4 py-2 rounded bg-purple-600 text-white text-sm hover:bg-purple-700 disabled:opacity-50"
                     >
 
@@ -1014,6 +1011,7 @@ const AddBlog = () => {
                 <p className="mt-6 text-gray-700">
                     Blog Content
                 </p>
+
 
                 <div className="max-w-4xl mt-2 pb-5">
 
@@ -1103,11 +1101,14 @@ const AddBlog = () => {
                                         </div>
 
                                     </div>
+
                                 )
                             )}
 
                         </div>
 
+
+                        {/* STRENGTHS */}
 
                         {analysis.strengths?.length > 0 && (
 
@@ -1132,8 +1133,11 @@ const AddBlog = () => {
                                 </ul>
 
                             </div>
+
                         )}
 
+
+                        {/* WEAKNESSES */}
 
                         {analysis.weaknesses?.length > 0 && (
 
@@ -1158,8 +1162,11 @@ const AddBlog = () => {
                                 </ul>
 
                             </div>
+
                         )}
 
+
+                        {/* SUGGESTIONS */}
 
                         {analysis.suggestions?.length > 0 && (
 
@@ -1184,9 +1191,11 @@ const AddBlog = () => {
                                 </ul>
 
                             </div>
+
                         )}
 
                     </div>
+
                 )}
 
 
@@ -1196,6 +1205,7 @@ const AddBlog = () => {
                     title={title}
                     subtitle={subtitle}
                     category={category}
+
                     authToken={userToken}
 
                     getContent={() =>
@@ -1207,41 +1217,46 @@ const AddBlog = () => {
                     onSEOGenerated={(data) => {
 
                         setSeoData(data);
+
                     }}
 
                     onContentChanged={(newContent) => {
 
                         if (quillRef.current) {
 
-                            quillRef.current
-                                .clipboard
+                            quillRef.current.clipboard
                                 .dangerouslyPasteHTML(
                                     newContent
                                 );
+
                         }
 
                     }}
                 />
 
 
-                {/* SUBMIT BUTTON */}
+                {/* SUBMIT */}
 
                 <button
                     type="submit"
+
                     disabled={isAdding}
+
                     className="mt-7 w-56 h-11 bg-[#F25022] text-white rounded cursor-pointer text-sm disabled:opacity-60"
                 >
 
                     {isAdding
-                        ? "Publishing..."
-                        : "Publish My Blog"}
+                        ? "Submitting..."
+                        : "Submit for Approval"}
 
                 </button>
 
             </form>
 
         </div>
+
     );
+
 };
 
 
